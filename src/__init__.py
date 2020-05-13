@@ -33,16 +33,24 @@ from anki.hooks import addHook
 from . import reading
 from . import sanitizer
 from . import replacer
+from . import config
 from .const import *
 
-# import logging
-# from pathlib import Path
-# logging.basicConfig(filename="%s/japanese-furigana.log" % str(Path.home()), level=logging.DEBUG,
-#                     format='\n\n-------------------------------------------\n\n\n\n%(asctime)s %(message)s')
-
-
 mecab = reading.MecabController()
+config = config.Config()
 
+def setupGuiMenu():
+    mw.FuriganaHelpMenu = QMenu('Furigana',  mw)
+
+    useBrackets = QAction("Use Bracket Notation", mw, checkable=True, checked=config.getBracketNotation())
+    useBrackets.toggled.connect(config.setBracketNotation)
+
+    mw.FuriganaHelpMenu.addAction(useBrackets)
+    #mw.FuriganaHelpMenu.addSeparator()
+    #mw.FuriganaHelpMenu.addAction(QAction("About Furigana", mw))
+    mw.form.menubar.insertMenu(mw.form.menuHelp.menuAction(), mw.FuriganaHelpMenu)
+
+setupGuiMenu()
 
 def stripHtml(text):
     text = re.sub(HTMLTAG, r'', text)
@@ -50,16 +58,15 @@ def stripHtml(text):
 
 
 def addButtons(buttons, editor):
-    editor._links["generateRuby"] = lambda ed=editor: doIt(ed, generateRuby)
-    editor._links["deleteRuby"] = lambda ed=editor: doIt(ed, deleteRuby)
+    editor._links["generateFurigana"] = lambda ed=editor: doIt(ed, generateFurigana)
+    editor._links["deleteFurigana"] = lambda ed=editor: doIt(ed, deleteFurigana)
     return buttons + [
-        editor._addButton(os.path.join(os.path.dirname(__file__), "icons", "add_furigana.svg"), "generateRuby", tip=u"Automatically generate furigana"),
-        editor._addButton(os.path.join(os.path.dirname(__file__), "icons", "del_furigana.svg"), "deleteRuby", tip=u"Mass delete furigana")
+        editor._addButton(os.path.join(os.path.dirname(__file__), "icons", "add_furigana.svg"), "generateFurigana", tip=u"Automatically generate furigana"),
+        editor._addButton(os.path.join(os.path.dirname(__file__), "icons", "del_furigana.svg"), "deleteFurigana", tip=u"Mass delete furigana")
     ]
 
 
 def doIt(editor, action):
-    #logging.debug('Do it! '+str(action))
     Selection(editor, lambda s: action(editor, s))
 
 
@@ -68,21 +75,23 @@ def finalizeRuby(html, s):
     s.modify(html, spaceAtLeft=spaces[0], spaceAtRight=spaces[1])
 
 
-def generateRuby(editor, s):
+def generateFurigana(editor, s):
     html = s.selected
-    # logging.debug("Selection: "+str(html))
-    # showInfo("%s" % html)
-    html = preRender(html)
+
     html = makeRuby(html)
-    html = preRender(html)
+    
+    if not config.getBracketNotation():
+        html = preRender(html)
+
     # showInfo("%s" % html)
+
     if html == s.selected:
         tooltip(_("Nothing to generate!"))
         return
     finalizeRuby(html, s)
 
 
-def deleteRuby(editor, s):
+def deleteFurigana(editor, s):
     html = s.selected
     html, number_brackets = catchFuriganaBrackets(html, clearRuby)
     html = preRender(html)
@@ -99,14 +108,12 @@ def makeRuby(html):
     html = r1.sub(html, FURIGANA_HTML)
 
     html, r2 = subForBrackets(html, lambda x: x.group(
-        0).replace(x.group(1), generateRuby(x.group(1))))
+        0).replace(x.group(1), generateFurigana(x.group(1))))
 
     r3 = replacer.Replacer()
     html = r3.sub(html, FURIGANA_BRACKETS)
     html = html.replace('\n', '')
     html = mecab.reading(html)
-
-    # logging.debug("reading: %s" % html)
 
     html = r3.restore(html)
     html = r2.restore(html)
@@ -175,17 +182,6 @@ def htmlRuby(base, ruby, base_hide, ruby_hide, base_cloze, ruby_cloze, insideClo
     html = u'''<ruby title="{4}"><rb{0}>{1}</rb><rt{2}>{3}</rt></ruby>'''.format(
         base_hide, base, ruby_hide, ruby, title)
     return html
-
-
-def htmlToHtml(match):
-    base = match.group('base')
-    ruby = match.group('ruby')
-    base_hide = 'hidden' in match.group('base_hide')
-    ruby_hide = 'hidden' in match.group('ruby_hide')
-    base_cloze = re.search(CLOZEDELETION_PATTERN_HTML, base)
-    ruby_cloze = re.search(CLOZEDELETION_PATTERN_HTML, ruby)
-    return htmlRuby(base, ruby, base_hide, ruby_hide, base_cloze, ruby_cloze, False)
-
 
 def catchFuriganaBrackets(html, callback):
     html, r = subForBrackets(html, lambda match: inside_cloze(match, callback))
