@@ -38,19 +38,7 @@ from .const import *
 mecab = reading.MecabController()
 config = config.Config()
 
-def setupGuiMenu():
-    mw.FuriganaHelpMenu = QMenu('Furigana',  mw)
-
-    useBrackets = QAction("Use Bracket Notation", mw, checkable=True, checked=config.getBracketNotation())
-    useBrackets.toggled.connect(config.setBracketNotation)
-
-    mw.FuriganaHelpMenu.addAction(useBrackets)
-    #mw.FuriganaHelpMenu.addSeparator()
-    #mw.FuriganaHelpMenu.addAction(QAction("About Furigana", mw))
-    mw.form.menubar.insertMenu(mw.form.menuHelp.menuAction(), mw.FuriganaHelpMenu)
-
-setupGuiMenu()
-
+# replace this method by the built-in anki method
 def stripHtml(text):
     text = re.sub(HTMLTAG, r'', text)
     return text
@@ -79,11 +67,7 @@ def generateFurigana(editor, s):
 
     html = makeRuby(html)
     
-    showInfo("%s" % html)
-    #if not config.getBracketNotation():
     html = preRender(html)
-
-    showInfo("%s" % html)
 
     if html == s.selected:
         tooltip(_("Nothing to generate!"))
