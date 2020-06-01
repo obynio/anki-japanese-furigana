@@ -31,7 +31,6 @@ from aqt.qt import *
 from anki.hooks import addHook
 
 from . import reading
-from . import sanitizer
 from . import replacer
 from . import config
 from .const import *
@@ -71,8 +70,8 @@ def doIt(editor, action):
 
 
 def finalizeRuby(html, s):
-    html, spaces = sanitizer.rubySanitizer(html, s.after, s.before)
-    s.modify(html, spaceAtLeft=spaces[0], spaceAtRight=spaces[1])
+    #html, spaces = sanitizer.rubySanitizer(html, s.after, s.before)
+    s.modify(html, 0, 0)
 
 
 def generateFurigana(editor, s):
@@ -80,10 +79,11 @@ def generateFurigana(editor, s):
 
     html = makeRuby(html)
     
-    if not config.getBracketNotation():
-        html = preRender(html)
+    showInfo("%s" % html)
+    #if not config.getBracketNotation():
+    html = preRender(html)
 
-    # showInfo("%s" % html)
+    showInfo("%s" % html)
 
     if html == s.selected:
         tooltip(_("Nothing to generate!"))
@@ -99,7 +99,7 @@ def deleteFurigana(editor, s):
     html = preRender(html)
     if number_brackets + number_html == 0:
         tooltip(
-            _("No furigana text found! Create some first with 'Generate readings.'"))
+            _("No furigana text found!"))
     finalizeRuby(html, s)
 
 
@@ -107,8 +107,7 @@ def makeRuby(html):
     r1 = replacer.Replacer()
     html = r1.sub(html, FURIGANA_HTML)
 
-    html, r2 = subForBrackets(html, lambda x: x.group(
-        0).replace(x.group(1), generateFurigana(x.group(1))))
+    html, r2 = subForBrackets(html, lambda x: x.group(0).replace(x.group(1), generateFurigana(x.group(1))))
 
     r3 = replacer.Replacer()
     html = r3.sub(html, FURIGANA_BRACKETS)
@@ -126,34 +125,15 @@ def clearRuby(match, r):
 
 
 def preRender(html):
-
-    def htmlToBrackets(match):
-        original = match.group(0)
-        if 'hidden' in match.group('base_hide'):
-            bracket_base = u"\u00a0{0}!"
-        else:
-            bracket_base = u"\u00a0{0}"
-        if 'hidden' in match.group('ruby_hide'):
-            bracket_ruby = u"[!{1}]"
-        else:
-            bracket_ruby = u"[{1}]"
-        base_cleaned, r = subForBrackets(
-            match.group('base'), lambda x: x.group(0))
-        base_cleaned = base_cleaned.replace(r'\u00a0', '').replace(r' ', '')
-        bracket_pattern = bracket_base + bracket_ruby
-        furigana_repl = bracket_pattern.format(
-            base_cleaned, match.group('ruby'))
-        furigana_repl = r.restore(furigana_repl)
-        return furigana_repl
-
     r = replacer.Replacer()
-    html = r.sub(html, FURIGANA_HTML, 'HTML_TO_BRACKETS',
-                 processing=htmlToBrackets)
-    html = renderFurigana(html)
+    #html = r.sub(html, FURIGANA_HTML, 'HTML_TO_BRACKETS',
+    #             processing=htmlToBrackets)
+    #html = renderFurigana(html)
     html = r.restore(html)
     return html
 
 
+# This one convert normal furigana brackets to html furigana
 def renderFurigana(html):
     html, number = catchFuriganaBrackets(html, bracketsToHtml)
     return html
@@ -185,8 +165,7 @@ def htmlRuby(base, ruby, base_hide, ruby_hide, base_cloze, ruby_cloze, insideClo
 
 def catchFuriganaBrackets(html, callback):
     html, r = subForBrackets(html, lambda match: inside_cloze(match, callback))
-    html, number = re.subn(FURIGANA_BRACKETS, lambda match: callback(
-        match, r), html, flags=re.UNICODE)
+    html, number = re.subn(FURIGANA_BRACKETS, lambda match: callback(match, r), html, flags=re.UNICODE)
     html = r.restore(html)
     return html, number
 
@@ -345,13 +324,9 @@ class Selection:
 
 def subForBrackets(html, cloze_processor):
     r = replacer.Replacer()
-    html = r.sub(html, TYPEIN_PATTERN, 'TYPEIN')
-    html = r.sub(html, SOUND_PATTERN, 'SOUND')
-    html = r.sub(html, CLOZEDELETION_PATTERN_HTML, 'CLOZE', cloze_processor)
-    html = r.sub(html, CLOZEDELETION_PATTERN_BRACES,
-                 'CLOZE_BRACES', cloze_processor)
-    html = r.sub(html, LINEBREAK, 'LINEBREAK\n')
-    html = r.sub(html, HTMLTAG, 'HTMLTAG')
+    #showInfo("%s" % html)
+    html = r.sub(html, CLOZEDELETION_PATTERN_BRACES, 'CLOZE_BRACES', cloze_processor)
+    #showInfo("%s" % html)
     return html, r
 
 

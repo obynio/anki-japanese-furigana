@@ -21,7 +21,7 @@
 # along with Japanese Furigana.  If not, see <http://www.gnu.org/licenses/>.
 
 import re
-# from aqt.utils import showInfo
+from aqt.utils import showInfo
 
 
 class Replacer:
@@ -31,8 +31,7 @@ class Replacer:
         self.index = 0
 
     def sub(self, html, pattern, type='SUBSTITUTE', processing=lambda x: x.group(0)):
-        html = re.sub(pattern, lambda match: self.subOne(
-            match, type, processing), html, flags=re.UNICODE)
+        html = re.sub(pattern, lambda match: self.subOne(match, type, processing), html, flags=re.UNICODE)
         return html
 
     def subOne(self, match, type, processing):
@@ -49,6 +48,3 @@ class Replacer:
             sub = sub.strip()
             html = html.replace(sub, original)
         return html
-
-    def subEach(self, match, different_r):
-        return self.subOne(match, type='SUBSTITUTE', processing=lambda x: x.group(0))

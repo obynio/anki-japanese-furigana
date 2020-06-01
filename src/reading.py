@@ -26,18 +26,13 @@ import re
 import subprocess
 from anki.utils import stripHTML, isWin, isMac
 
-from aqt import mw
-config = mw.addonManager.getConfig(__name__)
-
 kakasiArgs = ["-isjis", "-osjis", "-u", "-JH", "-KH"]
 mecabArgs = ['--node-format=%m[%f[7]] ', '--eos-format=\n',
              '--unk-format=%m[] ']
 
 mecabDir = os.path.join(os.path.dirname(__file__), "support")
 
-
 def escapeText(text):
-    # strip characters that trip up kakasi/mecab
     text = text.replace("\n", " ")
     text = text.replace(u'\uff5e', "~")
     text = re.sub("<br( /)?>", "---newline---", text)
@@ -45,20 +40,16 @@ def escapeText(text):
     text = text.replace("---newline---", "<br>")
     return text
 
-
 if sys.platform == "win32":
     si = subprocess.STARTUPINFO()
     try:
         si.dwFlags |= subprocess.STARTF_USESHOWWINDOW
     except:
-        # pylint: disable=no-member
         si.dwFlags |= subprocess._subprocess.STARTF_USESHOWWINDOW
 else:
     si = None
 
 # Mecab
-##########################################################################
-
 
 def mungeForPlatform(popen):
     if isWin:
@@ -75,9 +66,7 @@ class MecabController(object):
         self.mecab = None
 
     def setup(self):
-        self.mecabCmd = mungeForPlatform(
-            [os.path.join(mecabDir, "mecab")] + mecabArgs + [
-                '-d', mecabDir, '-r', os.path.join(mecabDir, "mecabrc")])
+        self.mecabCmd = mungeForPlatform([os.path.join(mecabDir, "mecab")] + mecabArgs + ['-d', mecabDir, '-r', os.path.join(mecabDir, "mecabrc")])
         os.environ['DYLD_LIBRARY_PATH'] = mecabDir
         os.environ['LD_LIBRARY_PATH'] = mecabDir
         if not isWin:
@@ -87,10 +76,7 @@ class MecabController(object):
         if not self.mecab:
             self.setup()
             try:
-                self.mecab = subprocess.Popen(
-                    self.mecabCmd, bufsize=-1, stdin=subprocess.PIPE,
-                    stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
-                    startupinfo=si)
+                self.mecab = subprocess.Popen(self.mecabCmd, bufsize=-1, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, startupinfo=si)
             except OSError:
                 raise Exception(
                     "Please ensure your Linux system has 64 bit binary support.")
@@ -151,15 +137,9 @@ class MecabController(object):
                         reading[:placeL], kanji[placeL:-placeR],
                         reading[placeL:-placeR], reading[-placeR:]))
         fin = ''.join(out)
-        # for c, s in enumerate(out):
-        #     if c < len(out) - 1 and not re.match("^[A-Za-z0-9]+$", out[c]) and re.match("^[A-Za-z0-9]+$", out[c+1]):
-        #         s += " "
-        #     fin += s
         return fin.strip().replace("< br>", "<br>")
 
 # Kakasi
-##########################################################################
-
 
 class KakasiController(object):
 
@@ -167,8 +147,7 @@ class KakasiController(object):
         self.kakasi = None
 
     def setup(self):
-        self.kakasiCmd = mungeForPlatform(
-            [os.path.join(mecabDir, "kakasi")] + kakasiArgs)
+        self.kakasiCmd = mungeForPlatform([os.path.join(mecabDir, "kakasi")] + kakasiArgs)
         os.environ['ITAIJIDICT'] = os.path.join(mecabDir, "itaijidict")
         os.environ['KANWADICT'] = os.path.join(mecabDir, "kanwadict")
         if not isWin:
@@ -178,10 +157,7 @@ class KakasiController(object):
         if not self.kakasi:
             self.setup()
             try:
-                self.kakasi = subprocess.Popen(
-                    self.kakasiCmd, bufsize=-1, stdin=subprocess.PIPE,
-                    stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
-                    startupinfo=si)
+                self.kakasi = subprocess.Popen(self.kakasiCmd, bufsize=-1, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, startupinfo=si)
             except OSError:
                 raise Exception("Please install kakasi")
 
@@ -194,25 +170,6 @@ class KakasiController(object):
         return res
 
 # Init
-##########################################################################
-
 
 kakasi = KakasiController()
 mecab = MecabController()
-
-# Tests
-##########################################################################
-
-if __name__ == "__main__":
-    expr = u"カリン、自分でまいた種は自分で刈り取れ"
-    print(mecab.reading(expr).encode("utf-8"))
-    expr = u"昨日、林檎を2個買った。"
-    print(mecab.reading(expr).encode("utf-8"))
-    expr = u"真莉、大好きだよん＾＾"
-    print(mecab.reading(expr).encode("utf-8"))
-    expr = u"彼２０００万も使った。"
-    print(mecab.reading(expr).encode("utf-8"))
-    expr = u"彼二千三百六十円も使った。"
-    print(mecab.reading(expr).encode("utf-8"))
-    expr = u"千葉"
-    print(mecab.reading(expr).encode("utf-8"))
