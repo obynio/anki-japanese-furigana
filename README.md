@@ -18,6 +18,10 @@ Japanese Furigana adds two buttons in the card editor toolbar `Generate furigana
 Select the field where you want to add furigana and click `Generate furigana`.
 When only a portion of text is selected in the field, furigana are only generated for or removed from that selected text portion.
 
+## Tests
+
+I try to include unit tests as much as possible, you can run them with `python -m unittest test.test_*`.
+
 ## Why
 
 There is already plently of plugins available for Japanese, but most of them are incompatible with Anki 2.1 or do not work on MacOS.
