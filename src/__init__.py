@@ -27,18 +27,51 @@ from time import sleep
 from aqt import mw
 from aqt.utils import showInfo, tooltip
 from aqt.qt import *
+import aqt as aqt
 
-from anki.hooks import addHook
+from anki.hooks import addHook, wrap
 
 from . import reading
-from . import replacer
-from . import config
-from .const import *
 
 mecab = reading.MecabController()
-config = config.Config()
 
-# replace this method by the built-in anki method
+myfunction1 = """
+<script>
+function getSelectionHtml() {
+    var html = "";
+    if (typeof window.getSelection != "undefined") {
+        var sel = window.getSelection();
+        if (sel.rangeCount) {
+            var container = document.createElement("div");
+            for (var i = 0, len = sel.rangeCount; i < len; ++i) {
+                container.appendChild(sel.getRangeAt(i).cloneContents());
+            }
+            html = container.innerHTML;
+        }
+    } else if (typeof document.selection != "undefined") {
+        if (document.selection.type == "Text") {
+            html = document.selection.createRange().htmlText;
+        }
+    }
+    pycmd("formattedHtml:" + html);
+}
+</script>
+"""
+
+
+myfunction2 = """
+<script>
+function getSelectionHtml() {
+    var selection = window.getSelection();
+    var range = selection.getRangeAt(0);
+    var div = document.createElement('div');
+    div.appendChild(range.cloneContents());
+    pycmd("formattedHtml:" + div.innerHTML);
+}
+</script>
+"""
+
+# TODO replace this method by the built-in anki method
 def stripHtml(text):
     text = re.sub(HTMLTAG, r'', text)
     return text
@@ -54,7 +87,9 @@ def addButtons(buttons, editor):
 
 
 def doIt(editor, action):
-    Selection(editor, lambda s: action(editor, s))
+    #Selection(editor, lambda s: action(editor, s))
+    editor.getFormattedText()
+
 
 
 def finalizeRuby(html, s):
@@ -67,8 +102,6 @@ def generateFurigana(editor, s):
 
     html = makeRuby(html)
     
-    html = preRender(html)
-
     if html == s.selected:
         tooltip(_("Nothing to generate!"))
         return
@@ -77,92 +110,34 @@ def generateFurigana(editor, s):
 
 def deleteFurigana(editor, s):
     html = s.selected
-    html, number_brackets = catchFuriganaBrackets(html, clearRuby)
-    html = preRender(html)
-    html, number_html = catchFuriganaBrackets(html, clearRuby)
-    html = preRender(html)
-    if number_brackets + number_html == 0:
-        tooltip(
-            _("No furigana text found!"))
+    # https://github.com/mass-immersion-approach/MIA-Japanese-Add-on/blob/master/src/js/removeBrackets.js
+    html, deletions = re.subn('\[.+\]', '', html)
+    if deletions == 0:
+        tooltip(_("No furigana found"))
     finalizeRuby(html, s)
 
 
 def makeRuby(html):
-    r1 = replacer.Replacer()
-    html = r1.sub(html, FURIGANA_HTML)
-
-    html, r2 = subForBrackets(html, lambda x: x.group(0).replace(x.group(1), generateFurigana(x.group(1))))
-
-    r3 = replacer.Replacer()
-    html = r3.sub(html, FURIGANA_BRACKETS)
-    html = html.replace('\n', '')
+    html = re.sub('\[.+\]', '', html)
     html = mecab.reading(html)
-
-    html = r3.restore(html)
-    html = r2.restore(html)
-    html = r1.restore(html)
     return html
 
+def myBridgeCmd(editor, cmd, _old):
+    if not cmd.startswith("formattedHtml:"):
+        return _old(editor, cmd)
+    (handlername, text) = cmd.split(":")
+    showInfo(text, textFormat="plain")
+aqt.editor.Editor.onBridgeCmd = wrap(aqt.editor.Editor.onBridgeCmd, myBridgeCmd, "around")
+# https://github.com/mass-immersion-approach/MIA-Japanese-Add-on/blob/master/src/main.py#L304
 
-def clearRuby(match, r):
-    return match.group('base')
+aqt.editor._html += myfunction2
+addHook("setupEditorButtons", addButtons)
 
+def getFormattedText(self):
+    self.web.eval("getSelectionHtml();")
+aqt.editor.Editor.getFormattedText = getFormattedText
 
-def preRender(html):
-    r = replacer.Replacer()
-    #html = r.sub(html, FURIGANA_HTML, 'HTML_TO_BRACKETS',
-    #             processing=htmlToBrackets)
-    #html = renderFurigana(html)
-    html = r.restore(html)
-    return html
-
-
-# This one convert normal furigana brackets to html furigana
-def renderFurigana(html):
-    html, number = catchFuriganaBrackets(html, bracketsToHtml)
-    return html
-
-
-def bracketsToHtml(match, r, insideCloze=False):
-    base = r.restore(match.group('base'))
-    ruby = r.restore(match.group('ruby'))
-    base_hide = (match.group('base_hide') == '!')
-    ruby_hide = (match.group('ruby_hide') == '!')
-    base_cloze = re.search(CLOZEDELETION_PATTERN_HTML, base)
-    ruby_cloze = re.search(CLOZEDELETION_PATTERN_HTML, ruby)
-    return htmlRuby(base, ruby, base_hide, ruby_hide, base_cloze, ruby_cloze, insideCloze)
-
-
-def htmlRuby(base, ruby, base_hide, ruby_hide, base_cloze, ruby_cloze, insideCloze):
-    if ruby_hide:
-        ruby_hide = ' class="hidden"'
-    else:
-        ruby_hide = ''
-    if base_hide:
-        base_hide = ' class="hidden"'
-    else:
-        base_hide = ''
-    title = stripHtml(base+'('+ruby+')')
-    html = u'''<ruby title="{4}"><rb{0}>{1}</rb><rt{2}>{3}</rt></ruby>'''.format(
-        base_hide, base, ruby_hide, ruby, title)
-    return html
-
-def catchFuriganaBrackets(html, callback):
-    html, r = subForBrackets(html, lambda match: inside_cloze(match, callback))
-    html, number = re.subn(FURIGANA_BRACKETS, lambda match: callback(match, r), html, flags=re.UNICODE)
-    html = r.restore(html)
-    return html, number
-
-
-def inside_cloze(match, callback):
-    "makes furigana work even inside clozes"
-    inside = match.group(1)
-    r = replacer.Replacer()
-    furigana = re.sub(FURIGANA_BRACKETS, lambda match: callback(
-        match, r, insideCloze=True), inside, flags=re.UNICODE)
-    return match.group(0).replace(inside, furigana)
-
-
+'''
 class Selection:
 
     js_get_html = u"""
@@ -304,14 +279,5 @@ class Selection:
 			range.toString(); 
 			""".format(json.dumps(html))
             self.window.web.page().runJavaScript(js_replace_selection)
+'''
 
-
-def subForBrackets(html, cloze_processor):
-    r = replacer.Replacer()
-    #showInfo("%s" % html)
-    html = r.sub(html, CLOZEDELETION_PATTERN_BRACES, 'CLOZE_BRACES', cloze_processor)
-    #showInfo("%s" % html)
-    return html, r
-
-
-addHook("setupEditorButtons", addButtons)
