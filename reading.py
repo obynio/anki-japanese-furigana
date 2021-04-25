@@ -1,24 +1,13 @@
 # -*- coding: utf-8 -*-
 
-# Copyright (C) 2018-2020
-# - Pyry Kontio <pyry.kontio@drasa.eu>
-# - Jean-Christophe Sirot <simple-furigana@sirot.org>
-# - Yohann Leon <yohann@leon.re>
+# This file is based on the Japanese Support add-on's reading.py, which can be
+# found at <https://github.com/ankitects/anki-addons>.
 #
-# This file is part of Japanese Furigana <https://github.com/obynio/anki-japanese-furigana>.
+# Copyright: Ankitects Pty Ltd and contributors
+# License: GNU GPL, version 3 or later; http://www.gnu.org/copyleft/gpl.html
 #
-# Japanese Furigana is free software: you can redistribute it and/or modify
-# it under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
+# Automatic reading generation with kakasi and mecab.
 #
-# Japanese Furigana is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with Japanese Furigana.  If not, see <http://www.gnu.org/licenses/>.
 
 import sys
 import os
