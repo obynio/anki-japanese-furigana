@@ -13,6 +13,7 @@ import sys
 import os
 import re
 import subprocess
+
 from anki.utils import isWin, isMac
 
 kakasiArgs = ["-isjis", "-osjis", "-u", "-JH", "-KH"]
@@ -138,7 +139,7 @@ class MecabController(object):
         fin = ''.join(out)
         for match in matches:
             fin = fin.replace(HTML_REPLACER, match, 1)
-        return re.sub(r'& ?nbsp ?;', ' ', re.sub(r"< ?br ?>", "<br>", fin.strip()))
+        return re.sub(r'& ?nbsp ?;', ' ', re.sub(r"< ?br ?>", "<br>", re.sub(r"> ", ">", fin.strip())))
 
 # Kakasi
 

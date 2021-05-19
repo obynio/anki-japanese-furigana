@@ -18,9 +18,8 @@
 import json
 import re
 import os
-from time import sleep
-from aqt import mw
-from aqt.utils import showInfo, tooltip
+
+from aqt.utils import tooltip
 from aqt.qt import *
 
 from anki.buildinfo import version
@@ -85,7 +84,6 @@ class Selection:
             else:
                 self.window.web.page().runJavaScript("getCurrentField().fieldHTML", lambda x: self.setHtml(x, callback, True))
             return
-
         self.selected = self.convertMalformedSpaces(self.selected)
         callback(self)
 
