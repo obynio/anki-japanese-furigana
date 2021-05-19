@@ -23,6 +23,7 @@ from aqt import mw
 from aqt.utils import showInfo, tooltip
 from aqt.qt import *
 
+from anki.buildinfo import version
 from anki.hooks import addHook
 
 from . import reading
@@ -44,7 +45,6 @@ def generateFurigana(editor, s):
     html = s.selected
     html = re.sub('\[[^\]]*\]', '', html)
     html = mecab.reading(html)
-
     if html == s.selected:
         tooltip(_("Nothing to generate!"))
     else:
@@ -71,14 +71,21 @@ class Selection:
 
     def __init__(self, window, callback):
         self.window = window
-        window.web.page().runJavaScript(self.js_get_html, lambda x: self.setHtml(x, callback))
+        self.setHtml(None, callback)
+
+    def isDeprecated(self):
+        return int(version.replace('.', '')) < 2141
 
     def setHtml(self, elements, callback, allowEmpty=False):
-        self.selected = self.window.web.selectedText()
-        if self.window.web.selectedText() == '':
-            self.window.web.eval("setFormat('selectAll');")
-            self.window.web.page().runJavaScript(self.js_get_html, lambda x: self.setHtml(x, callback, True))
+        self.selected = elements
+        if self.selected == None:
+            if self.isDeprecated():
+                self.window.web.eval("setFormat('selectAll');")
+                self.window.web.page().runJavaScript(self.js_get_html, lambda x: self.setHtml(x, callback, True))
+            else:
+                self.window.web.page().runJavaScript("getCurrentField().fieldHTML", lambda x: self.setHtml(x, callback, True))
             return
+
         self.selected = self.convertMalformedSpaces(self.selected)
         callback(self)
 
@@ -87,6 +94,9 @@ class Selection:
 
     def modify(self, html):
         html = self.convertMalformedSpaces(html)
-        self.window.web.eval("setFormat('insertHTML', %s);" % json.dumps(html))
+        if self.isDeprecated():
+            self.window.web.eval("setFormat('insertHTML', %s);" % json.dumps(html))
+        else:
+            self.window.web.page().runJavaScript("getCurrentField().fieldHTML = %s;" % json.dumps(html))
 
 addHook("setupEditorButtons", addButtons)

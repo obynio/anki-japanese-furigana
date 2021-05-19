@@ -13,7 +13,7 @@ import sys
 import os
 import re
 import subprocess
-from anki.utils import stripHTML, isWin, isMac
+from anki.utils import isWin, isMac
 
 kakasiArgs = ["-isjis", "-osjis", "-u", "-JH", "-KH"]
 mecabArgs = ['--node-format=%m[%f[7]] ', '--eos-format=\n',
@@ -21,13 +21,23 @@ mecabArgs = ['--node-format=%m[%f[7]] ', '--eos-format=\n',
 
 mecabDir = os.path.join(os.path.dirname(__file__), "support")
 
+HTML_REPLACER = '▦'
+NEWLINE_REPLACER = '▧'
+
+def htmlReplace(text):
+    pattern = r"(?:<[^<]+?>)"
+    matches = re.findall(pattern, text)
+    text = re.sub(r"<[^<]+?>", HTML_REPLACER, text)
+    return matches, text
+
 def escapeText(text):
     text = text.replace("\n", " ")
     text = text.replace(u'\uff5e', "~")
-    text = re.sub("<br( /)?>", "---newline---", text)
-    text = stripHTML(text)
-    text = text.replace("---newline---", "<br>")
-    return text
+    text = re.sub("<br( /)?>", NEWLINE_REPLACER, text)
+    #showInfo(text)
+    matches, text = htmlReplace(text)
+    text = text.replace(NEWLINE_REPLACER, "<br>")
+    return matches, text
 
 if sys.platform == "win32":
     si = subprocess.STARTUPINFO()
@@ -72,7 +82,7 @@ class MecabController(object):
 
     def reading(self, expr):
         self.ensureOpen()
-        expr = escapeText(expr)
+        matches, expr = escapeText(expr)
         self.mecab.stdin.write(expr.encode("utf-8", "ignore") + b'\n')
         self.mecab.stdin.flush()
         expr = self.mecab.stdout.readline().rstrip(b'\r\n').decode('utf-8', "ignore")
@@ -126,7 +136,9 @@ class MecabController(object):
                         reading[:placeL], kanji[placeL:-placeR],
                         reading[placeL:-placeR], reading[-placeR:]))
         fin = ''.join(out)
-        return fin.strip().replace("< br>", "<br>")
+        for match in matches:
+            fin = fin.replace(HTML_REPLACER, match, 1)
+        return re.sub(r'& ?nbsp ?;', ' ', re.sub(r"< ?br ?>", "<br>", fin.strip()))
 
 # Kakasi
 
@@ -152,7 +164,7 @@ class KakasiController(object):
 
     def reading(self, expr):
         self.ensureOpen()
-        expr = escapeText(expr)
+        _, expr = escapeText(expr)
         self.kakasi.stdin.write(expr.encode("sjis", "ignore") + b'\n')
         self.kakasi.stdin.flush()
         res = self.kakasi.stdout.readline().rstrip(b'\r\n').decode("sjis")
