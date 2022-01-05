@@ -81,7 +81,7 @@ class MecabController(object):
                 raise Exception(
                     "Please ensure your Linux system has 64 bit binary support.")
 
-    def reading(self, expr):
+    def reading(self, expr, ignoreNumbers = False, useRubyTags = True):
         self.ensureOpen()
         matches, expr = escapeText(expr)
         self.mecab.stdin.write(expr.encode("utf-8", "ignore") + b'\n')
@@ -107,7 +107,7 @@ class MecabController(object):
                 out.append(kanji)
                 continue
             # don't add readings of numbers
-            if kanji in u"一二三四五六七八九十０１２３４５６７８９":
+            if ignoreNumbers and kanji in u"一二三四五六七八九十０１２３４５６７８９":
                 out.append(kanji)
                 continue
             # strip matching characters and beginning and end of reading and kanji
@@ -139,7 +139,23 @@ class MecabController(object):
         fin = ''.join(out)
         for match in matches:
             fin = fin.replace(HTML_REPLACER, match, 1)
-        return re.sub(r'& ?nbsp ?;', ' ', re.sub(r"< ?br ?>", "<br>", re.sub(r"> ", ">", fin.strip())))
+        
+        returnCandidate =  re.sub(r'& ?nbsp ?;', ' ', re.sub(r"< ?br ?>", "<br>", re.sub(r"> ", ">", fin.strip())))
+
+        if not useRubyTags:
+            return returnCandidate
+        else:
+            words = returnCandidate.split(" ")
+            for i, word in enumerate(words):
+                if "[" in word or "]" in word:
+                    # get everthing between the brackets
+                    between = re.search(r"\[(.*?)\]", word).group(1)
+                    # get everything before the brackets
+                    before = re.search(r"(.*?)\[", word).group(1)
+                    # get everything before the closed bracket
+                    toReplace = re.search(r"(.*?)\]", word).group(1) + "]"
+                    words[i] = word.replace(toReplace, "<ruby>" + before + "<rp>(</rp><rt>" + between + "</rt><rp>)</rp></ruby>")
+            return ''.join(words)
 
 # Kakasi
 

@@ -22,6 +22,9 @@ import os
 from aqt.utils import tooltip
 from aqt.qt import *
 
+from aqt import mw
+config = mw.addonManager.getConfig(__name__)
+
 from anki.buildinfo import version
 from anki.hooks import addHook
 
@@ -43,7 +46,7 @@ def doIt(editor, action):
 def generateFurigana(editor, s):
     html = s.selected
     html = re.sub('\[[^\]]*\]', '', html)
-    html = mecab.reading(html)
+    html = mecab.reading(html, config['ignoreNumbers'], config['useRubyTags'])
     if html == s.selected:
         tooltip(_("Nothing to generate!"))
     else:
