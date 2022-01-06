@@ -81,7 +81,7 @@ class MecabController(object):
                 raise Exception(
                     "Please ensure your Linux system has 64 bit binary support.")
 
-    def reading(self, expr, ignoreNumbers = False, useRubyTags = True):
+    def reading(self, expr, ignoreNumbers = True, useRubyTags = False):
         self.ensureOpen()
         matches, expr = escapeText(expr)
         self.mecab.stdin.write(expr.encode("utf-8", "ignore") + b'\n')
