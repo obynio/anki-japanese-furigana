@@ -54,12 +54,22 @@ def generateFurigana(editor, s):
 
 def deleteFurigana(editor, s):
     html = s.selected
-    html, deletions = re.subn('\[[^\]]*\]', '', html)
-
-    if deletions == 0:
-        tooltip(_("No furigana found"))
+    if config["useRubyTags"]:
+        betweens = list(map(lambda x: "<ruby>"+x+"</ruby>", re.findall(r"<ruby>(.*?)<\/ruby>", html)))
+        if len(betweens) == 0:
+            tooltip(_("No furigana found to delete"))
+        else:
+            for b in betweens:
+                replacement = re.search(r"<ruby>(.*?)<rp>",b).group(1).strip()
+                html = html.replace(b, replacement)
+            s.modify(html)
     else:
-        s.modify(html)
+        html, deletions = re.subn('\[[^\]]*\]', '', html)
+
+        if deletions == 0:
+            tooltip(_("No furigana found to delete"))
+        else:
+            s.modify(html)
 
 class Selection:
 
