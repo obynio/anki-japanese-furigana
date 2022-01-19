@@ -22,6 +22,9 @@ import os
 from aqt.utils import tooltip
 from aqt.qt import *
 
+from aqt import mw
+config = mw.addonManager.getConfig(__name__)
+
 from anki.buildinfo import version
 from anki.hooks import addHook
 
@@ -43,7 +46,7 @@ def doIt(editor, action):
 def generateFurigana(editor, s):
     html = s.selected
     html = re.sub('\[[^\]]*\]', '', html)
-    html = mecab.reading(html)
+    html = mecab.reading(html, config['ignoreNumbers'], config['useRubyTags'])
     if html == s.selected:
         tooltip(_("Nothing to generate!"))
     else:
@@ -51,12 +54,22 @@ def generateFurigana(editor, s):
 
 def deleteFurigana(editor, s):
     html = s.selected
-    html, deletions = re.subn('\[[^\]]*\]', '', html)
-
-    if deletions == 0:
-        tooltip(_("No furigana found"))
+    if config["useRubyTags"]:
+        betweens = list(map(lambda x: "<ruby>"+x+"</ruby>", re.findall(r"<ruby>(.*?)<\/ruby>", html)))
+        if len(betweens) == 0:
+            tooltip(_("No furigana found to delete"))
+        else:
+            for b in betweens:
+                replacement = re.search(r"<ruby>(.*?)<rp>",b).group(1).strip()
+                html = html.replace(b, replacement)
+            s.modify(html)
     else:
-        s.modify(html)
+        html, deletions = re.subn('\[[^\]]*\]', '', html)
+
+        if deletions == 0:
+            tooltip(_("No furigana found to delete"))
+        else:
+            s.modify(html)
 
 class Selection:
 
