@@ -60,7 +60,7 @@ def generateFurigana(editor: Editor, s: Selection) -> None:
     html = re.sub('\[[^\]]*\]', '', html)
     html = mecab.reading(html, config.getIgnoreNumbers(), config.getUseRubyTags())
     if html == s.selected:
-        tooltip(_("Nothing to generate!"))
+        tooltip("Nothing to generate!")
     else:
         s.modify(html)
 
@@ -69,7 +69,7 @@ def deleteFurigana(editor: Editor, s: Selection) -> None:
     if config.getUseRubyTags():
         betweens = list(map(lambda x: "<ruby>"+x+"</ruby>", re.findall(r"<ruby>(.*?)<\/ruby>", html)))
         if len(betweens) == 0:
-            tooltip(_("No furigana found to delete"))
+            tooltip("No furigana found to delete")
         else:
             for b in betweens:
                 replacement = re.search(r"<ruby>(.*?)<rp>",b).group(1).strip()
@@ -79,7 +79,7 @@ def deleteFurigana(editor: Editor, s: Selection) -> None:
         html, deletions = re.subn('\[[^\]]*\]', '', html)
 
         if deletions == 0:
-            tooltip(_("No furigana found to delete"))
+            tooltip("No furigana found to delete")
         else:
             s.modify(html)
 
