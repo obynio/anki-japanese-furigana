@@ -14,7 +14,7 @@ import os
 import re
 import subprocess
 
-from anki.utils import isWin, isMac
+from anki.utils import is_win, is_mac
 
 kakasiArgs = ["-isjis", "-osjis", "-u", "-JH", "-KH"]
 mecabArgs = ['--node-format=%m[%f[7]] ', '--eos-format=\n',
@@ -52,10 +52,10 @@ else:
 # Mecab
 
 def mungeForPlatform(popen):
-    if isWin:
+    if is_win:
         popen = [os.path.normpath(x) for x in popen]
         popen[0] += ".exe"
-    elif not isMac:
+    elif not is_mac:
         popen[0] += ".lin"
     return popen
 
@@ -69,7 +69,7 @@ class MecabController(object):
         self.mecabCmd = mungeForPlatform([os.path.join(mecabDir, "mecab")] + mecabArgs + ['-d', mecabDir, '-r', os.path.join(mecabDir, "mecabrc")])
         os.environ['DYLD_LIBRARY_PATH'] = mecabDir
         os.environ['LD_LIBRARY_PATH'] = mecabDir
-        if not isWin:
+        if not is_win:
             os.chmod(self.mecabCmd[0], 0o755)
 
     def ensureOpen(self):
@@ -168,7 +168,7 @@ class KakasiController(object):
         self.kakasiCmd = mungeForPlatform([os.path.join(mecabDir, "kakasi")] + kakasiArgs)
         os.environ['ITAIJIDICT'] = os.path.join(mecabDir, "itaijidict")
         os.environ['KANWADICT'] = os.path.join(mecabDir, "kanwadict")
-        if not isWin:
+        if not is_win:
             os.chmod(self.kakasiCmd[0], 0o755)
 
     def ensureOpen(self):
