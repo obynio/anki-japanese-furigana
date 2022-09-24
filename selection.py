@@ -25,6 +25,8 @@ from aqt.editor import Editor
 
 from anki.buildinfo import version
 
+ANKI_SEMVER_AS_INT = int(version.replace('.', ''))
+
 class Selection:
 
     selected: Optional[str]
@@ -40,9 +42,6 @@ class Selection:
         self.window = window
         self.setHtml(None, callback)
 
-    def isDeprecated(self):
-        return int(version.replace('.', '')) < 2141
-
     def setHtml(self, elements, callback, allowEmpty=False) -> None:
         self.selected = elements
         if self.selected is not None:
@@ -50,19 +49,37 @@ class Selection:
             callback(self)
             return
 
-        if self.isDeprecated():
+        if ANKI_SEMVER_AS_INT < 2141:
             self.window.web.eval("setFormat('selectAll');")
             self.window.web.page().runJavaScript(self.js_get_html, lambda x: self.setHtml(x, callback, True))
-        else:
+        elif ANKI_SEMVER_AS_INT < 2150:
             self.window.web.page().runJavaScript("getCurrentField().fieldHTML", lambda x: self.setHtml(x, callback, True))
-        return
+        else:
+            if self.window.currentField is None:
+                return
+
+            if self.window.note is None:
+                return
+
+            self.setHtml(self.window.note.fields[self.window.currentField], callback, True)
+            return
 
     def convertMalformedSpaces(self, text: str) -> str:
         return re.sub(r'& ?nbsp ?;', ' ', text)
 
     def modify(self, html: str) -> None:
         html = self.convertMalformedSpaces(html)
-        if self.isDeprecated():
+
+        if ANKI_SEMVER_AS_INT < 2141:
             self.window.web.eval("setFormat('insertHTML', %s);" % json.dumps(html))
-        else:
+        elif ANKI_SEMVER_AS_INT < 2150:
             self.window.web.page().runJavaScript("getCurrentField().fieldHTML = %s;" % json.dumps(html))
+        else:
+            if self.window.currentField is None:
+                return
+
+            if self.window.note is None:
+                return
+            
+            self.window.note.fields[self.window.currentField] = html
+            self.window.loadNoteKeepingFocus()
