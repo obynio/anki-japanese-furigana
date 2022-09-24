@@ -20,6 +20,7 @@ import os
 
 from aqt.utils import tooltip
 from aqt.qt import *
+from aqt.editor import Editor
 
 from aqt import mw
 
@@ -43,7 +44,7 @@ def setupGuiMenu():
     mw.form.menuTools.addAction(useRubyTags)
     mw.form.menuTools.addAction(ignoreNumbers)
 
-def addButtons(buttons, editor):
+def addButtons(buttons: list[str], editor: Editor) -> list[str]:
     editor._links["generateFurigana"] = lambda ed=editor: doIt(ed, generateFurigana)
     editor._links["deleteFurigana"] = lambda ed=editor: doIt(ed, deleteFurigana)
     return buttons + [
@@ -51,10 +52,10 @@ def addButtons(buttons, editor):
         editor._addButton(os.path.join(os.path.dirname(__file__), "icons", "del_furigana.svg"), "deleteFurigana", tip=u"Mass delete furigana")
     ]
 
-def doIt(editor, action):
+def doIt(editor: Editor, action: Callable[[Editor, Selection], None]):
     Selection(editor, lambda s: action(editor, s))
     
-def generateFurigana(editor, s):
+def generateFurigana(editor: Editor, s: Selection) -> None:
     html = s.selected
     html = re.sub('\[[^\]]*\]', '', html)
     html = mecab.reading(html, config.getIgnoreNumbers(), config.getUseRubyTags())
@@ -63,7 +64,7 @@ def generateFurigana(editor, s):
     else:
         s.modify(html)
 
-def deleteFurigana(editor, s):
+def deleteFurigana(editor: Editor, s: Selection) -> None:
     html = s.selected
     if config.getUseRubyTags():
         betweens = list(map(lambda x: "<ruby>"+x+"</ruby>", re.findall(r"<ruby>(.*?)<\/ruby>", html)))

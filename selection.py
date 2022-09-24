@@ -18,12 +18,16 @@
 import json
 import re
 
+from typing import Optional
+
 from aqt.qt import *
+from aqt.editor import Editor
 
 from anki.buildinfo import version
 
 class Selection:
 
+    selected: Optional[str]
     js_get_html = u"""
         var selection = window.getSelection();
         var range = selection.getRangeAt(0);
@@ -32,29 +36,31 @@ class Selection:
         div.innerHTML;
     """
 
-    def __init__(self, window, callback):
+    def __init__(self, window: Editor, callback):
         self.window = window
         self.setHtml(None, callback)
 
     def isDeprecated(self):
         return int(version.replace('.', '')) < 2141
 
-    def setHtml(self, elements, callback, allowEmpty=False):
+    def setHtml(self, elements, callback, allowEmpty=False) -> None:
         self.selected = elements
-        if self.selected == None:
-            if self.isDeprecated():
-                self.window.web.eval("setFormat('selectAll');")
-                self.window.web.page().runJavaScript(self.js_get_html, lambda x: self.setHtml(x, callback, True))
-            else:
-                self.window.web.page().runJavaScript("getCurrentField().fieldHTML", lambda x: self.setHtml(x, callback, True))
+        if self.selected is not None:
+            self.selected = self.convertMalformedSpaces(self.selected)
+            callback(self)
             return
-        self.selected = self.convertMalformedSpaces(self.selected)
-        callback(self)
 
-    def convertMalformedSpaces(self, text):
+        if self.isDeprecated():
+            self.window.web.eval("setFormat('selectAll');")
+            self.window.web.page().runJavaScript(self.js_get_html, lambda x: self.setHtml(x, callback, True))
+        else:
+            self.window.web.page().runJavaScript("getCurrentField().fieldHTML", lambda x: self.setHtml(x, callback, True))
+        return
+
+    def convertMalformedSpaces(self, text: str) -> str:
         return re.sub(r'& ?nbsp ?;', ' ', text)
 
-    def modify(self, html):
+    def modify(self, html: str) -> None:
         html = self.convertMalformedSpaces(html)
         if self.isDeprecated():
             self.window.web.eval("setFormat('insertHTML', %s);" % json.dumps(html))
