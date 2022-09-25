@@ -13,6 +13,7 @@ import sys
 import os
 import re
 import subprocess
+from typing import Optional
 
 from anki.utils import is_win, is_mac
 
@@ -59,6 +60,19 @@ def mungeForPlatform(popen):
         popen[0] += ".lin"
     return popen
 
+class ReadingNode:
+    def __init__(self, text: str, reading: Optional[str]):
+        self.text = text
+        self.reading = reading
+
+    def format(self, useRubyTags: bool) -> str:
+        if self.reading is None:
+            return self.text
+
+        if useRubyTags:
+            return "<ruby>%s<rp>(</rp><rt>%s</rt><rp>)</rp></ruby>" % (self.text, self.reading)
+        else:
+            return '%s[%s]' % (self.text, self.reading)
 
 class MecabController(object):
 
@@ -87,29 +101,36 @@ class MecabController(object):
         self.mecab.stdin.write(expr.encode("utf-8", "ignore") + b'\n')
         self.mecab.stdin.flush()
         expr = self.mecab.stdout.readline().rstrip(b'\r\n').decode('utf-8', "ignore")
-        out = []
+        nodes: list[ReadingNode] = []
         for node in expr.split(" "):
             if not node:
                 break
+
             (kanji, reading) = re.match(r"(.+)\[(.*)\]", node).groups()
+
             # hiragana, punctuation, not japanese, or lacking a reading
             if kanji == reading or not reading:
-                out.append(kanji)
+                nodes.append(ReadingNode(kanji, None))
                 continue
-            # katakana
+
+            # Text in sentence is katakana
             if kanji == kakasi.reading(reading):
-                out.append(kanji)
+                nodes.append(ReadingNode(kanji, None))
                 continue
+
             # convert to hiragana
             reading = kakasi.reading(reading)
-            # ended up the same
+
+            # Text in sentence is hiragana
             if reading == kanji:
-                out.append(kanji)
+                nodes.append(ReadingNode(kanji, None))
                 continue
+
             # don't add readings of numbers
             if ignoreNumbers and kanji in u"一二三四五六七八九十０１２３４５６７８９":
-                out.append(kanji)
+                nodes.append(ReadingNode(kanji, None))
                 continue
+
             # strip matching characters and beginning and end of reading and kanji
             # reading should always be at least as long as the kanji
             placeL = 0
@@ -124,38 +145,36 @@ class MecabController(object):
                 placeL = i+1
             if placeL == 0:
                 if placeR == 0:
-                    out.append(" %s[%s]" % (kanji, reading))
+                    # CASE: The entire word receives the entire reading (no affix)
+                    # Example: 男【オトコ】
+                    nodes.append(ReadingNode(kanji, reading))
                 else:
-                    out.append(" %s[%s]%s" % (
-                        kanji[:-placeR], reading[:-placeR], reading[-placeR:]))
+                    # CASE: Okurigana at the end of the kanji (reading only applies to a prefix)
+                    # Example: 口走る【クチバシル】
+                    nodes.append(ReadingNode(kanji[:-placeR], reading[:-placeR]))
+                    nodes.append(ReadingNode(reading[-placeR:], None))
             else:
                 if placeR == 0:
-                    out.append("%s %s[%s]" % (
-                        reading[:placeL], kanji[placeL:], reading[placeL:]))
+                    # CASE: Kanji has a prefix that's written in kana
+                    # Example: お前[オマエ]
+                    nodes.append(ReadingNode(reading[:placeL], None))
+                    nodes.append(ReadingNode(kanji[placeL:], reading[placeL:]))
                 else:
-                    out.append("%s %s[%s]%s" % (
-                        reading[:placeL], kanji[placeL:-placeR],
-                        reading[placeL:-placeR], reading[-placeR:]))
-        fin = ''.join(out)
+                    # CASE: Kanji has a prefix that's written in kana AND a suffix
+                    # Example: みじん切り[ミジンギリ]
+                    nodes.append(ReadingNode(reading[:placeL], None))
+                    nodes.append(ReadingNode(kanji[placeL:-placeR], reading[placeL:-placeR]))
+                    nodes.append(ReadingNode(reading[-placeR:], None))
+
+        # Combine our nodes together into a single sentece
+        fin = ''.join(node.format(useRubyTags) for node in nodes)
+
+        # Finalize formatting
         for match in matches:
             fin = fin.replace(HTML_REPLACER, match, 1)
-        
-        returnCandidate =  re.sub(r'& ?nbsp ?;', ' ', re.sub(r"< ?br ?>", "<br>", re.sub(r"> ", ">", fin.strip())))
 
-        if not useRubyTags:
-            return returnCandidate
-        else:
-            words = returnCandidate.split(" ")
-            for i, word in enumerate(words):
-                if "[" in word or "]" in word:
-                    # get everthing between the brackets
-                    between = re.search(r"\[(.*?)\]", word).group(1)
-                    # get everything before the brackets
-                    before = re.search(r"(.*?)\[", word).group(1)
-                    # get everything before the closed bracket
-                    toReplace = re.search(r"(.*?)\]", word).group(1) + "]"
-                    words[i] = word.replace(toReplace, "<ruby>" + before + "<rp>(</rp><rt>" + between + "</rt><rp>)</rp></ruby>")
-            return ''.join(words)
+        fin =  re.sub(r'& ?nbsp ?;', ' ', re.sub(r"< ?br ?>", "<br>", re.sub(r"> ", ">", fin.strip())))
+        return fin
 
 # Kakasi
 
