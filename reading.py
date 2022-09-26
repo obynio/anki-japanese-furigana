@@ -13,6 +13,7 @@ import sys
 import os
 import re
 import subprocess
+import platform
 from typing import Optional
 
 from anki.utils import is_win, is_mac
@@ -58,6 +59,8 @@ def mungeForPlatform(popen):
         popen[0] += ".exe"
     elif not is_mac:
         popen[0] += ".lin"
+    elif platform.machine() == "arm64":
+        popen[0] += ".arm"
     return popen
 
 class ReadingNode:
