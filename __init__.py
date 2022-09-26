@@ -15,20 +15,20 @@
 # You should have received a copy of the GNU General Public License
 # along with Japanese Furigana.  If not, see <http://www.gnu.org/licenses/>.
 
-import json
 import re
 import os
 
 from aqt.utils import tooltip
 from aqt.qt import *
+from aqt.editor import Editor
 
 from aqt import mw
 
-from anki.buildinfo import version
 from anki.hooks import addHook
 
 from . import reading
 from . import config
+from .selection import Selection
 
 mecab  = reading.MecabController()
 config = config.Config()
@@ -44,7 +44,7 @@ def setupGuiMenu():
     mw.form.menuTools.addAction(useRubyTags)
     mw.form.menuTools.addAction(ignoreNumbers)
 
-def addButtons(buttons, editor):
+def addButtons(buttons: list[str], editor: Editor) -> list[str]:
     editor._links["generateFurigana"] = lambda ed=editor: doIt(ed, generateFurigana)
     editor._links["deleteFurigana"] = lambda ed=editor: doIt(ed, deleteFurigana)
     return buttons + [
@@ -52,24 +52,24 @@ def addButtons(buttons, editor):
         editor._addButton(os.path.join(os.path.dirname(__file__), "icons", "del_furigana.svg"), "deleteFurigana", tip=u"Mass delete furigana")
     ]
 
-def doIt(editor, action):
+def doIt(editor: Editor, action: Callable[[Editor, Selection], None]):
     Selection(editor, lambda s: action(editor, s))
     
-def generateFurigana(editor, s):
+def generateFurigana(editor: Editor, s: Selection) -> None:
     html = s.selected
     html = re.sub('\[[^\]]*\]', '', html)
     html = mecab.reading(html, config.getIgnoreNumbers(), config.getUseRubyTags())
     if html == s.selected:
-        tooltip(_("Nothing to generate!"))
+        tooltip("Nothing to generate!")
     else:
         s.modify(html)
 
-def deleteFurigana(editor, s):
+def deleteFurigana(editor: Editor, s: Selection) -> None:
     html = s.selected
     if config.getUseRubyTags():
         betweens = list(map(lambda x: "<ruby>"+x+"</ruby>", re.findall(r"<ruby>(.*?)<\/ruby>", html)))
         if len(betweens) == 0:
-            tooltip(_("No furigana found to delete"))
+            tooltip("No furigana found to delete")
         else:
             for b in betweens:
                 replacement = re.search(r"<ruby>(.*?)<rp>",b).group(1).strip()
@@ -79,48 +79,9 @@ def deleteFurigana(editor, s):
         html, deletions = re.subn('\[[^\]]*\]', '', html)
 
         if deletions == 0:
-            tooltip(_("No furigana found to delete"))
+            tooltip("No furigana found to delete")
         else:
             s.modify(html)
-
-class Selection:
-
-    js_get_html = u"""
-        var selection = window.getSelection();
-        var range = selection.getRangeAt(0);
-        var div = document.createElement('div');
-        div.appendChild(range.cloneContents());
-        div.innerHTML;
-    """
-
-    def __init__(self, window, callback):
-        self.window = window
-        self.setHtml(None, callback)
-
-    def isDeprecated(self):
-        return int(version.replace('.', '')) < 2141
-
-    def setHtml(self, elements, callback, allowEmpty=False):
-        self.selected = elements
-        if self.selected == None:
-            if self.isDeprecated():
-                self.window.web.eval("setFormat('selectAll');")
-                self.window.web.page().runJavaScript(self.js_get_html, lambda x: self.setHtml(x, callback, True))
-            else:
-                self.window.web.page().runJavaScript("getCurrentField().fieldHTML", lambda x: self.setHtml(x, callback, True))
-            return
-        self.selected = self.convertMalformedSpaces(self.selected)
-        callback(self)
-
-    def convertMalformedSpaces(self, text):
-        return re.sub(r'& ?nbsp ?;', ' ', text)
-
-    def modify(self, html):
-        html = self.convertMalformedSpaces(html)
-        if self.isDeprecated():
-            self.window.web.eval("setFormat('insertHTML', %s);" % json.dumps(html))
-        else:
-            self.window.web.page().runJavaScript("getCurrentField().fieldHTML = %s;" % json.dumps(html))
 
 setupGuiMenu()
 addHook("setupEditorButtons", addButtons)
