@@ -44,7 +44,7 @@ def setupGuiMenu():
     mw.form.menuTools.addAction(useRubyTags)
     mw.form.menuTools.addAction(ignoreNumbers)
 
-def addButtons(buttons: list[str], editor: Editor) -> list[str]:
+def addButtons(buttons, editor):
     editor._links["generateFurigana"] = lambda ed=editor: doIt(ed, generateFurigana)
     editor._links["deleteFurigana"] = lambda ed=editor: doIt(ed, deleteFurigana)
     return buttons + [
@@ -52,10 +52,10 @@ def addButtons(buttons: list[str], editor: Editor) -> list[str]:
         editor._addButton(os.path.join(os.path.dirname(__file__), "icons", "del_furigana.svg"), "deleteFurigana", tip=u"Mass delete furigana")
     ]
 
-def doIt(editor: Editor, action: Callable[[Editor, Selection], None]):
+def doIt(editor, action):
     Selection(editor, lambda s: action(editor, s))
     
-def generateFurigana(editor: Editor, s: Selection) -> None:
+def generateFurigana(editor, s):
     html = s.selected
     html = re.sub('\[[^\]]*\]', '', html)
     html = mecab.reading(html, config.getIgnoreNumbers(), config.getUseRubyTags())
@@ -64,7 +64,7 @@ def generateFurigana(editor: Editor, s: Selection) -> None:
     else:
         s.modify(html)
 
-def deleteFurigana(editor: Editor, s: Selection) -> None:
+def deleteFurigana(editor, s):
     html = s.selected
     if config.getUseRubyTags():
         betweens = list(map(lambda x: "<ruby>"+x+"</ruby>", re.findall(r"<ruby>(.*?)<\/ruby>", html)))
