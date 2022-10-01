@@ -33,3 +33,21 @@ class TestReading(unittest.TestCase):
     def testKanjiNumber(self):
         res = reading.mecab.reading("彼二千三百六十円も使った。")
         self.assertEqual(res, "彼[かれ]二千[せん]三百[ひゃく]六十円[えん]も使[つか]った。")
+
+    # ensure that verbs with okurigana don't produce furigana for the kana portions
+    def testOkurigana(self):
+        actual = reading.mecab.reading("口走る")
+        self.assertEqual(actual, "口走[くちばし]る")
+    
+    # ensure that a single word that has plain kana appearing before the kanji in
+    # the word do not have attached furigana
+    def testKanaPrefixes(self):
+        actual = reading.mecab.reading("お前")
+        self.assertEqual(actual, "お前[まえ]")
+
+    # ensure that a single word that both begins AND ends with kana but contains
+    # kanji in the middle only generates furigana for the kanji portion, and not
+    # for the kana
+    def testKanaPrefixSuffix(self):
+        actual = reading.mecab.reading("みじん切り")
+        self.assertEqual(actual, "みじん切[ぎ]り")
