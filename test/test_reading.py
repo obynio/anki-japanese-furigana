@@ -7,7 +7,7 @@ class TestReading(unittest.TestCase):
     # sentence should have readings
     def testNormalSentence(self):
         res = reading.mecab.reading("カリン、自分でまいた種は自分で刈り取れ")
-        self.assertEqual(res, "カリン、自分[じぶん]でまいた種[たね]は自分[じぶん]で刈り取[かりと]れ")
+        self.assertEqual(res, "カリン、自分[じぶん]でまいた種[たね]は自分[じぶん]で刈[か]り取[と]れ")
 
     # kanji should have a reading
     def testNormalKanji(self):
@@ -51,3 +51,10 @@ class TestReading(unittest.TestCase):
     def testKanaPrefixSuffix(self):
         actual = reading.mecab.reading("みじん切り")
         self.assertEqual(actual, "みじん切[ぎ]り")
+
+    # ensure that for words that have kana in between two kanji, that only the
+    # kanji receive furigana readings and the kana does not
+    def testKanaBetweenKanji(self):
+        self.assertEqual(reading.mecab.reading("書き込む"), "書[か]き込[こ]む")
+        self.assertEqual(reading.mecab.reading("走り抜く"), "走[はし]り抜[ぬ]く")
+        self.assertEqual(reading.mecab.reading("走り回る"), "走[はし]り回[まわ]る")

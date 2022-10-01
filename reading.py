@@ -133,40 +133,49 @@ class MecabController(object):
                 nodes.append(ReadingNode(kanji, None))
                 continue
 
-            # strip matching characters and beginning and end of reading and kanji
-            # reading should always be at least as long as the kanji
-            placeL = 0
-            placeR = 0
-            for i in range(1, len(kanji)):
-                if kanji[-i] != reading[-i]:
-                    break
-                placeR = i
-            for i in range(0, len(kanji)-1):
-                if kanji[i] != reading[i]:
-                    break
-                placeL = i+1
-            if placeL == 0:
-                if placeR == 0:
-                    # CASE: The entire word receives the entire reading (no affix)
-                    # Example: 男【オトコ】
-                    nodes.append(ReadingNode(kanji, reading))
-                else:
-                    # CASE: Okurigana at the end of the kanji (reading only applies to a prefix)
-                    # Example: 口走る【クチバシル】
-                    nodes.append(ReadingNode(kanji[:-placeR], reading[:-placeR]))
-                    nodes.append(ReadingNode(reading[-placeR:], None))
-            else:
-                if placeR == 0:
-                    # CASE: Kanji has a prefix that's written in kana
-                    # Example: お前[オマエ]
-                    nodes.append(ReadingNode(reading[:placeL], None))
-                    nodes.append(ReadingNode(kanji[placeL:], reading[placeL:]))
-                else:
-                    # CASE: Kanji has a prefix that's written in kana AND a suffix
-                    # Example: みじん切り[ミジンギリ]
-                    nodes.append(ReadingNode(reading[:placeL], None))
-                    nodes.append(ReadingNode(kanji[placeL:-placeR], reading[placeL:-placeR]))
-                    nodes.append(ReadingNode(reading[-placeR:], None))
+            # iterate through the reading and the kanji, and only produce furigana
+            # for the characters that differ between the two (only give furigana to
+            # the kanji, not the kana)
+            # INVARIANT: reading is always at least as long as the kanji/word
+            indexKanji = 0
+            indexReading = 0
+            while indexReading < len(reading):
+                # If the reading and the kanji have the same value, the current
+                # character must be kana. Continue reading until we find the next
+                # difference
+                if kanji[indexKanji] == reading[indexReading]:
+                    indexStart = indexReading
+                    while indexReading < len(reading) and \
+                        indexKanji < len(kanji) and \
+                            kanji[indexKanji] == reading[indexReading]:
+                        indexReading += 1
+                        indexKanji += 1
+                    nodes.append(ReadingNode(reading[indexStart:indexReading], None))
+                    continue
+
+                # The current characters are different, which must mean that we're
+                # at the start of a kanji. Make a node with furigana that contains
+                # all of the reading until we have a match up again between kanji string
+                # and reading
+                indexStartReading = indexReading
+                indexReading += 1 # Ensure we start our checks on the NEXT kana after triggering
+                while indexReading < len(reading):
+                    # Check to see if the current reading kana is found in the string.
+                    # This implements a lazy algorithm w.r.t. furigana length
+                    try:
+                        indexEnd = kanji.index(reading[indexReading], indexKanji)
+                        nodes.append(ReadingNode(kanji[indexKanji:indexEnd], reading[indexStartReading:indexReading]))
+                        indexKanji = indexEnd
+                        break
+                    except ValueError:
+                        pass
+                    
+                    indexReading += 1
+
+                if indexReading == len(reading):
+                    # We made it to the end of the reading, which should mean that the entire remaining
+                    # kanji has the entire remaining reading
+                    nodes.append(ReadingNode(kanji[indexKanji:], reading[indexStartReading:]))
 
         # Combine our nodes together into a single sentece
         fin = ''.join(node.format(useRubyTags) for node in nodes)
