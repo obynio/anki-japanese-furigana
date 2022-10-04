@@ -58,3 +58,9 @@ class TestReading(unittest.TestCase):
         self.assertEqual(reading.mecab.reading("書き込む"), "書[か]き込[こ]む")
         self.assertEqual(reading.mecab.reading("走り抜く"), "走[はし]り抜[ぬ]く")
         self.assertEqual(reading.mecab.reading("走り回る"), "走[はし]り回[まわ]る")
+
+    # ensure that any regular ASCII space characters (0x20) that are in the original
+    # string are found in the resultant string as well
+    def testSpacesRetained(self):
+        self.assertEqual(reading.mecab.reading("この文に 空白が あります"), "この文[ぶん]に 空白[くうはく]が あります")
+        self.assertEqual(reading.mecab.reading("hello world"), "hello world")
