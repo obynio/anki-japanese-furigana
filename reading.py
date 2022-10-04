@@ -26,6 +26,16 @@ mecabDir = os.path.join(os.path.dirname(__file__), "support")
 HTML_REPLACER = '▦'
 NEWLINE_REPLACER = '▧'
 
+# Unicode character used to replace ASCII Space (0x20) in expression before
+# passing in to MeCab. MeCab separates kanji/reading nodes with ASCII spaces,
+# so without this we wouldn't be able to tell apart a node separator from a
+# space character in the original string.
+# This is unique to ASCII Space (0x20) and does not apply to any other whitespace
+# character (eg CJK Space)
+# Codepoint chosen to be a unicode character unlikely to ever feature in ANY
+# Anki card.
+ASCII_SPACE_TOKEN = u"\U0000FFFF"
+
 def htmlReplace(text):
     pattern = r"(?:<[^<]+?>)"
     matches = re.findall(pattern, text)
@@ -100,6 +110,7 @@ class MecabController(object):
     def reading(self, expr, ignoreNumbers = True, useRubyTags = False):
         self.ensureOpen()
         matches, expr = escapeText(expr)
+        expr = expr.replace(" ", ASCII_SPACE_TOKEN)
         self.mecab.stdin.write(expr.encode("utf-8", "ignore") + b'\n')
         self.mecab.stdin.flush()
         expr = self.mecab.stdout.readline().rstrip(b'\r\n').decode('utf-8', "ignore")
@@ -181,6 +192,7 @@ class MecabController(object):
         fin = ''.join(node.format(useRubyTags) for node in nodes)
 
         # Finalize formatting
+        fin = fin.replace(ASCII_SPACE_TOKEN, ' ')
         for match in matches:
             fin = fin.replace(HTML_REPLACER, match, 1)
 
