@@ -17,3 +17,8 @@ class TestRemoveFurigana(unittest.TestCase):
     def testRemovesRuby(self):
         self.assertEqual(utils.removeFurigana("<ruby>日本語<rp>(</rp><rt>にほんご</rt><rp>)</rp></ruby>を<ruby>勉強<rp>(</rp><rt>べんきょう</rt><rp>)</rp></ruby>する"), "日本語を勉強する")
         self.assertEqual(utils.removeFurigana("<ruby>走<rp>(</rp><rt>はし</rt><rp>)</rp></ruby>り<ruby>込<rp>(</rp><rt>こ</rt><rp>)</rp></ruby>む"), "走り込む")
+
+    # ensure that <ruby /> tags without the inessential <rp /> tags are stripped
+    def testRemovesRubyWithoutRp(self):
+        self.assertEqual(utils.removeFurigana("<ruby>日本語<rt>にほんご</rt></ruby>を<ruby>勉強<rt>べんきょう</rt></ruby>する"), "日本語を勉強する")
+        self.assertEqual(utils.removeFurigana("<ruby>走<rt>はし</rt></ruby>り<ruby>込<rt>こ</rt></ruby>む"), "走り込む")
