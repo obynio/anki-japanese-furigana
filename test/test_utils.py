@@ -27,3 +27,8 @@ class TestRemoveFurigana(unittest.TestCase):
     def testPreservesOtherHtml(self):
         self.assertEqual(utils.removeFurigana("<b>日本語</b>"), "<b>日本語</b>")
         self.assertEqual(utils.removeFurigana("ビルの<ruby>形<rp>(</rp><rt>かたち</rt><rp>)</rp></ruby>はほぼ<b><u><ruby>正方形<rp>(</rp><rt>せいほうけい</rt><rp>)</rp></ruby></u></b>だった。"), "ビルの形はほぼ<b><u>正方形</u></b>だった。")
+
+    # ensure that the utility function will remove both styles from the same string
+    # (which also ensures that we're decoupled from the user's current config selection)
+    def testRemovesBothNotations(self):
+        self.assertEqual(utils.removeFurigana("<ruby>日本語<rp>(</rp><rt>にほんご</rt><rp>)</rp></ruby>を勉強[べんきょう]する"), "日本語を勉強する")
