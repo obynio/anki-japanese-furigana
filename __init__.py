@@ -15,7 +15,6 @@
 # You should have received a copy of the GNU General Public License
 # along with Japanese Furigana.  If not, see <http://www.gnu.org/licenses/>.
 
-import re
 import os
 
 from aqt.utils import tooltip
@@ -58,7 +57,7 @@ def doIt(editor, action):
     
 def generateFurigana(editor, s):
     html = s.selected
-    html = re.sub('\[[^\]]*\]', '', html)
+    html = removeFurigana(html)
     html = mecab.reading(html, config.getIgnoreNumbers(), config.getUseRubyTags())
     if html == s.selected:
         tooltip("Nothing to generate!")
