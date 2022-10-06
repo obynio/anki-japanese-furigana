@@ -29,6 +29,7 @@ from anki.hooks import addHook
 from . import reading
 from . import config
 from .selection import Selection
+from .utils import removeFurigana
 
 mecab  = reading.MecabController()
 config = config.Config()
@@ -65,23 +66,11 @@ def generateFurigana(editor, s):
         s.modify(html)
 
 def deleteFurigana(editor, s):
-    html = s.selected
-    if config.getUseRubyTags():
-        betweens = list(map(lambda x: "<ruby>"+x+"</ruby>", re.findall(r"<ruby>(.*?)<\/ruby>", html)))
-        if len(betweens) == 0:
-            tooltip("No furigana found to delete")
-        else:
-            for b in betweens:
-                replacement = re.search(r"<ruby>(.*?)<rp>",b).group(1).strip()
-                html = html.replace(b, replacement)
-            s.modify(html)
+    stripped = removeFurigana(s.selected)
+    if stripped == s.selected:
+        tooltip("No furigana found to delete")
     else:
-        html, deletions = re.subn('\[[^\]]*\]', '', html)
-
-        if deletions == 0:
-            tooltip("No furigana found to delete")
-        else:
-            s.modify(html)
+        s.modify(stripped)
 
 setupGuiMenu()
 addHook("setupEditorButtons", addButtons)
