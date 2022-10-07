@@ -121,21 +121,18 @@ class MecabController(object):
 
             (kanji, reading) = re.match(r"(.+)\[(.*)\]", node).groups()
 
-            # hiragana, punctuation, not japanese, or lacking a reading
+            # katakana, punctuation, not japanese, or lacking a reading
+            # NOTE: Katakana goes down this path because Mecab returns all
+            # readings in katakana, so a katakana word looks like 'カリン[カリン]'
             if kanji == reading or not reading:
                 nodes.append(ReadingNode(kanji, None))
                 continue
 
-            # Text in sentence is katakana
-            if kanji == kakasi.reading(reading):
-                nodes.append(ReadingNode(kanji, None))
-                continue
-
-            # convert to hiragana
+            # convert reading from katakana to hiragana
             reading = kakasi.reading(reading)
 
             # Text in sentence is hiragana
-            if reading == kanji:
+            if kanji == reading:
                 nodes.append(ReadingNode(kanji, None))
                 continue
 

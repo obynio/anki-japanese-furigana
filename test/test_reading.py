@@ -24,6 +24,11 @@ class TestMecab(unittest.TestCase):
         res = reading.mecab.reading("真莉、大好きだよん＾＾")
         self.assertEqual(res, "真[ま]莉、大好[だいす]きだよん＾＾")
 
+    # katakana should not be given furigana readings
+    def testKatakana(self):
+        self.assertEqual(reading.mecab.reading("ウィキペディア"), "ウィキペディア")
+        self.assertEqual(reading.mecab.reading("テレビ・ゲームがマシ"), "テレビ・ゲームがマシ")
+
     # romanji numbers should not have readings
     def testRomanjiNumbers(self):
         res = reading.mecab.reading("彼２０００万も使った。")
