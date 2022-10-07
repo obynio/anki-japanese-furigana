@@ -70,67 +70,69 @@ class TestMecab(unittest.TestCase):
         self.assertEqual(reading.mecab.reading("この文に 空白が あります"), "この文[ぶん]に 空白[くうはく]が あります")
         self.assertEqual(reading.mecab.reading("hello world"), "hello world")
 
-class TestKakasi(unittest.TestCase):
+class TestConvertToHiragana(unittest.TestCase):
     # ensure that if the function is called with an empty string, it will return
     # an empty string
     def testEmptyReturnsEmpty(self):
-        self.assertEqual(reading.kakasi.reading(""), "")
+        self.assertEqual(reading.convertToHiragana(""), "")
 
-    # ensure that any non-Japanese characters provided to Kakasi are returned
-    # exactly as they are
+    # ensure that any non-Japanese characters provided to convertToHiragana are
+    # returned exactly as they are
     def testEnglishReturnsSelf(self):
-        self.assertEqual(reading.kakasi.reading("hello world"), "hello world")
+        self.assertEqual(reading.convertToHiragana("hello world"), "hello world")
 
-    # ensure that if hiragana is provided to Kakasi, that it will return back the
-    # same hiragana
+    # ensure that if hiragana is provided to convertToHiragana, that it will
+    # return back the same hiragana
     def testHiraReturnsSelf(self):
-        self.assertEqual(reading.kakasi.reading("にほんご"), "にほんご")
-        self.assertEqual(reading.kakasi.reading("あ"), "あ")
-        self.assertEqual(reading.kakasi.reading("あじ"), "あじ")
+        self.assertEqual(reading.convertToHiragana("にほんご"), "にほんご")
+        self.assertEqual(reading.convertToHiragana("あ"), "あ")
+        self.assertEqual(reading.convertToHiragana("あじ"), "あじ")
 
-    # ensure that katakana provided to Kakasi returns the hiragana equivalent
+    # ensure that katakana provided to convertToHiragana returns the hiragana
+    # equivalent
     def testKataReturnsHira(self):
-        self.assertEqual(reading.kakasi.reading("ニホンゴ"), "にほんご")
-        self.assertEqual(reading.kakasi.reading("ア"), "あ")
-        self.assertEqual(reading.kakasi.reading("アジ"), "あじ")
-        self.assertEqual(reading.kakasi.reading("ローマ"), "ろーま")
+        self.assertEqual(reading.convertToHiragana("ニホンゴ"), "にほんご")
+        self.assertEqual(reading.convertToHiragana("ア"), "あ")
+        self.assertEqual(reading.convertToHiragana("アジ"), "あじ")
+        self.assertEqual(reading.convertToHiragana("ローマ"), "ろーま")
 
-    # ensure that Kakasi supports strings that contain a mixture of hiragana and
-    # katakana, and will always return the entire string in hiragana
+    # ensure that convertToHiragana supports strings that contain a mixture of
+    # hiragana and katakana, and will always return the entire string in hiragana
     def testMixtureReturnsFullHira(self):
-        self.assertEqual(reading.kakasi.reading("おカネ"), "おかね")
-        self.assertEqual(reading.kakasi.reading("ポケもり"), "ぽけもり")
+        self.assertEqual(reading.convertToHiragana("おカネ"), "おかね")
+        self.assertEqual(reading.convertToHiragana("ポケもり"), "ぽけもり")
 
     # Standalone diacritic characters should be preserved. These will be common
     # especially in manga to make "impossible" sounds.
     def testStandaloneDiacritics(self):
-        self.assertEqual(reading.kakasi.reading("あ゜"), "あ゜")
-        self.assertEqual(reading.kakasi.reading("イ゜"), "い゜")
-        self.assertEqual(reading.kakasi.reading("あ゛"), "あ゛")
-        self.assertEqual(reading.kakasi.reading("イ゛"), "い゛")
+        self.assertEqual(reading.convertToHiragana("あ゜"), "あ゜")
+        self.assertEqual(reading.convertToHiragana("イ゜"), "い゜")
+        self.assertEqual(reading.convertToHiragana("あ゛"), "あ゛")
+        self.assertEqual(reading.convertToHiragana("イ゛"), "い゛")
 
-    # Ensure that Kakasi preserves any punctuation characters
+    # Ensure that convertToHiragana preserves any punctuation characters
     def testPreservesPunctuation(self):
-        self.assertEqual(reading.kakasi.reading("にほんへ。"), "にほんへ。")
-        self.assertEqual(reading.kakasi.reading("ポケットモンスター ダイヤモンド・パール"), "ぽけっともんすたー だいやもんど・ぱーる")
+        self.assertEqual(reading.convertToHiragana("にほんへ。"), "にほんへ。")
+        self.assertEqual(reading.convertToHiragana("ポケットモンスター ダイヤモンド・パール"), "ぽけっともんすたー だいやもんど・ぱーる")
 
     # Ensure that any ASCII whitespace (0x20) that goes in returns as an ASCII
     # whitespace character, rather than being converted to CJK space (0x3000)
     def testPreserveAsciiWhitespace(self):
-        self.assertEqual(reading.kakasi.reading("しょしんしゃ です"), "しょしんしゃ です")
+        self.assertEqual(reading.convertToHiragana("しょしんしゃ です"), "しょしんしゃ です")
 
-    # Kakasi doesn't support half-width conversion, so ensure that half-width
-    # kana return the same characters
+    # LEGACY: The prior implementation of convertToHiragana (Kakasi) did not
+    # convert half-width katakana to full-width hiragana. For backwards compatibility,
+    # this behavior should be preserved.
     def testHalfWidthKata(self):
-        self.assertEqual(reading.kakasi.reading("ﾒｶﾞﾈ"), "ﾒｶﾞﾈ")
-        self.assertEqual(reading.kakasi.reading("ｱ"), "ｱ")
-        self.assertEqual(reading.kakasi.reading("ﾊﾞｶ"), "ﾊﾞｶ")
+        self.assertEqual(reading.convertToHiragana("ﾒｶﾞﾈ"), "ﾒｶﾞﾈ")
+        self.assertEqual(reading.convertToHiragana("ｱ"), "ｱ")
+        self.assertEqual(reading.convertToHiragana("ﾊﾞｶ"), "ﾊﾞｶ")
 
     # Ensure that small katakana characters are converted to their hiragana equivalent
     def testSmallKana(self):
-        self.assertEqual(reading.kakasi.reading("ウィキペディア"), "うぃきぺでぃあ")
-        self.assertEqual(reading.kakasi.reading("ぁ"), "ぁ")
-        self.assertEqual(reading.kakasi.reading("ァ"), "ぁ")
-        self.assertEqual(reading.kakasi.reading("ツィッター"), "つぃったー")
-        self.assertEqual(reading.kakasi.reading("ぁぃぅぇぉ"), "ぁぃぅぇぉ")
-        self.assertEqual(reading.kakasi.reading("ァィゥェォ"), "ぁぃぅぇぉ")
+        self.assertEqual(reading.convertToHiragana("ウィキペディア"), "うぃきぺでぃあ")
+        self.assertEqual(reading.convertToHiragana("ぁ"), "ぁ")
+        self.assertEqual(reading.convertToHiragana("ァ"), "ぁ")
+        self.assertEqual(reading.convertToHiragana("ツィッター"), "つぃったー")
+        self.assertEqual(reading.convertToHiragana("ぁぃぅぇぉ"), "ぁぃぅぇぉ")
+        self.assertEqual(reading.convertToHiragana("ァィゥェォ"), "ぁぃぅぇぉ")
