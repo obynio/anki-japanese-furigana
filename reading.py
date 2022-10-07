@@ -59,7 +59,7 @@ if sys.platform == "win32":
 else:
     si = None
 
-# Syllabary conversion
+# Syllabary utilities
 UNICODE_HIRAGANA_START = 0x3041
 UNICODE_HIRAGANA_END = 0x309F
 UNICODE_KATAKANA_START = 0x30A1
@@ -99,6 +99,13 @@ translator = Translator()
 
 def convertToHiragana(expr: str) -> str:
     return expr.translate(translator)
+
+# Determines if two strings have the same phonetic reading, regardless
+# of which script they're currently in (eg, 'は' == 'は' and 'ハ' == 'は')
+def areKanaEqual(a: str, b: str) -> bool:
+    hiraA = convertToHiragana(a)
+    hiraB = convertToHiragana(b)
+    return hiraA == hiraB
 
 # Mecab
 
@@ -191,14 +198,14 @@ class MecabController(object):
                 # If the reading and the kanji have the same value, the current
                 # character must be kana. Continue reading until we find the next
                 # difference
-                if kanji[indexKanji] == reading[indexReading]:
-                    indexStart = indexReading
+                if areKanaEqual(kanji[indexKanji], reading[indexReading]):
+                    indexStart = indexKanji
                     while indexReading < len(reading) and \
                         indexKanji < len(kanji) and \
-                            kanji[indexKanji] == reading[indexReading]:
+                            areKanaEqual(kanji[indexKanji], reading[indexReading]):
                         indexReading += 1
                         indexKanji += 1
-                    nodes.append(ReadingNode(reading[indexStart:indexReading], None))
+                    nodes.append(ReadingNode(kanji[indexStart:indexKanji], None))
                     continue
 
                 # The current characters are different, which must mean that we're

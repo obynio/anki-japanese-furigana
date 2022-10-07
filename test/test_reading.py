@@ -47,8 +47,9 @@ class TestMecab(unittest.TestCase):
     # ensure that a single word that has plain kana appearing before the kanji in
     # the word do not have attached furigana
     def testKanaPrefixes(self):
-        actual = reading.mecab.reading("お前")
-        self.assertEqual(actual, "お前[まえ]")
+        self.assertEqual(reading.mecab.reading("お前"), "お前[まえ]")
+        self.assertEqual(reading.mecab.reading("ローマ字"), "ローマ字[じ]")
+        self.assertEqual(reading.mecab.reading("ローマ帝国"), "ローマ帝国[ていこく]")
 
     # ensure that a single word that both begins AND ends with kana but contains
     # kanji in the middle only generates furigana for the kanji portion, and not
