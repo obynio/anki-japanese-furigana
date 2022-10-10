@@ -6,7 +6,7 @@
 # Copyright: Ankitects Pty Ltd and contributors
 # License: GNU GPL, version 3 or later; http://www.gnu.org/copyleft/gpl.html
 #
-# Automatic reading generation with kakasi and mecab.
+# Automatic reading generation with mecab.
 #
 
 import sys
@@ -15,9 +15,8 @@ import re
 import subprocess
 import platform
 
-from typing import Optional
+from typing import Mapping, Optional, Union
 
-kakasiArgs = ["-isjis", "-osjis", "-u", "-JH", "-KH"]
 mecabArgs = ['--node-format=%m[%f[7]] ', '--eos-format=\n',
              '--unk-format=%m[] ']
 
@@ -59,6 +58,54 @@ if sys.platform == "win32":
         si.dwFlags |= subprocess._subprocess.STARTF_USESHOWWINDOW
 else:
     si = None
+
+# Syllabary utilities
+UNICODE_HIRAGANA_START = 0x3041
+UNICODE_HIRAGANA_END = 0x309F
+UNICODE_KATAKANA_START = 0x30A1
+UNICODE_KATAKANA_END = 0x30FF
+
+UNICODE_MIDDLE_DOT = 0x30FB # '・'
+UNICODE_PROLONGED_SOUND_MARK = 0x30FC # 'ー'
+
+class Translator(Mapping[int, Union[str, int, None]]):
+    def __getitem__(self, key: int) -> Union[str, int, None]:
+        if not isinstance(key, int):
+            # Argument error
+            raise LookupError()
+        
+        if key >= UNICODE_KATAKANA_START and key <= UNICODE_KATAKANA_END:
+            # Some general punctuation is located within the Katakana block
+            # and SHOULDN'T be transformed
+            if key == UNICODE_MIDDLE_DOT or key == UNICODE_PROLONGED_SOUND_MARK:
+                raise LookupError()
+
+            # Regular katakana Unicode block
+            offset = key - UNICODE_KATAKANA_START
+            return UNICODE_HIRAGANA_START + offset
+
+        # Not a character we're converting
+        raise LookupError()
+
+    def __len__(self) -> int:
+        # Exists only to satisfy base type
+        raise NotImplementedError()
+
+    def __iter__(self):
+        # Exists only to satisfy base type
+        raise NotImplementedError()
+
+translator = Translator()
+
+def convertToHiragana(expr: str) -> str:
+    return expr.translate(translator)
+
+# Determines if two strings have the same phonetic reading, regardless
+# of which script they're currently in (eg, 'は' == 'は' and 'ハ' == 'は')
+def areKanaEqual(a: str, b: str) -> bool:
+    hiraA = convertToHiragana(a)
+    hiraB = convertToHiragana(b)
+    return hiraA == hiraB
 
 # Mecab
 
@@ -121,21 +168,18 @@ class MecabController(object):
 
             (kanji, reading) = re.match(r"(.+)\[(.*)\]", node).groups()
 
-            # hiragana, punctuation, not japanese, or lacking a reading
+            # katakana, punctuation, not japanese, or lacking a reading
+            # NOTE: Katakana goes down this path because Mecab returns all
+            # readings in katakana, so a katakana word looks like 'カリン[カリン]'
             if kanji == reading or not reading:
                 nodes.append(ReadingNode(kanji, None))
                 continue
 
-            # Text in sentence is katakana
-            if kanji == kakasi.reading(reading):
-                nodes.append(ReadingNode(kanji, None))
-                continue
-
-            # convert to hiragana
-            reading = kakasi.reading(reading)
+            # convert reading from katakana to hiragana
+            reading = convertToHiragana(reading)
 
             # Text in sentence is hiragana
-            if reading == kanji:
+            if kanji == reading:
                 nodes.append(ReadingNode(kanji, None))
                 continue
 
@@ -154,14 +198,14 @@ class MecabController(object):
                 # If the reading and the kanji have the same value, the current
                 # character must be kana. Continue reading until we find the next
                 # difference
-                if kanji[indexKanji] == reading[indexReading]:
-                    indexStart = indexReading
+                if areKanaEqual(kanji[indexKanji], reading[indexReading]):
+                    indexStart = indexKanji
                     while indexReading < len(reading) and \
                         indexKanji < len(kanji) and \
-                            kanji[indexKanji] == reading[indexReading]:
+                            areKanaEqual(kanji[indexKanji], reading[indexReading]):
                         indexReading += 1
                         indexKanji += 1
-                    nodes.append(ReadingNode(reading[indexStart:indexReading], None))
+                    nodes.append(ReadingNode(kanji[indexStart:indexKanji], None))
                     continue
 
                 # The current characters are different, which must mean that we're
@@ -199,37 +243,6 @@ class MecabController(object):
         fin =  re.sub(r'& ?nbsp ?;', ' ', re.sub(r"< ?br ?>", "<br>", re.sub(r"> ", ">", fin.strip())))
         return fin
 
-# Kakasi
-
-class KakasiController(object):
-
-    def __init__(self):
-        self.kakasi = None
-
-    def setup(self):
-        self.kakasiCmd = mungeForPlatform([os.path.join(mecabDir, "kakasi")] + kakasiArgs)
-        os.environ['ITAIJIDICT'] = os.path.join(mecabDir, "itaijidict")
-        os.environ['KANWADICT'] = os.path.join(mecabDir, "kanwadict")
-        if not sys.platform.startswith("win32"):
-            os.chmod(self.kakasiCmd[0], 0o755)
-
-    def ensureOpen(self):
-        if not self.kakasi:
-            self.setup()
-            try:
-                self.kakasi = subprocess.Popen(self.kakasiCmd, bufsize=-1, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, startupinfo=si)
-            except OSError:
-                raise Exception("Please install kakasi")
-
-    def reading(self, expr):
-        self.ensureOpen()
-        _, expr = escapeText(expr)
-        self.kakasi.stdin.write(expr.encode("sjis", "ignore") + b'\n')
-        self.kakasi.stdin.flush()
-        res = self.kakasi.stdout.readline().rstrip(b'\r\n').decode("sjis")
-        return res
-
 # Init
 
-kakasi = KakasiController()
 mecab = MecabController()
