@@ -15,6 +15,7 @@
 # You should have received a copy of the GNU General Public License
 # along with Japanese Furigana.  If not, see <http://www.gnu.org/licenses/>.
 
+from aqt.addons import AbortAddonImport
 from aqt import mw
 
 def saveMe(func):
@@ -25,7 +26,11 @@ def saveMe(func):
     return wrapper
 
 class Config:
-    data = mw.addonManager.getConfig(__name__)
+    def __init__(self):
+        if mw is None:
+            raise AbortAddonImport("No Anki main window?")
+
+        self.data = mw.addonManager.getConfig(__name__)
 
     def getUseRubyTags(self):
         return self.data['useRubyTags']

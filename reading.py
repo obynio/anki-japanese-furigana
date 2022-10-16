@@ -15,7 +15,7 @@ import re
 import subprocess
 import platform
 
-from typing import Mapping, Optional, Union
+from typing import Any, Mapping, Optional, Union
 
 mecabArgs = ['--node-format=%m[%f[7]] ', '--eos-format=\n',
              '--unk-format=%m[] ']
@@ -57,7 +57,7 @@ if sys.platform == "win32":
     except:
         si.dwFlags |= subprocess._subprocess.STARTF_USESHOWWINDOW
 else:
-    si = None
+    si: Optional[Any] = None
 
 # Syllabary utilities
 UNICODE_HIRAGANA_START = 0x3041
