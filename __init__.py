@@ -19,19 +19,18 @@ import os
 
 from aqt.utils import tooltip
 from aqt.qt import *
-from aqt.editor import Editor
 
 from aqt import mw
 
 from anki.hooks import addHook
 
 from . import reading
-from . import config
+from .config import Config
 from .selection import Selection
 from .utils import removeFurigana
 
 mecab  = reading.MecabController()
-config = config.Config()
+config = Config()
 
 def setupGuiMenu():
     useRubyTags = QAction("Use ruby tags", mw, checkable=True, checked=config.getUseRubyTags())
