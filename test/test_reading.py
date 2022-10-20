@@ -58,8 +58,8 @@ class TestMecab(unittest.TestCase):
 
     # ensure that verbs with okurigana don't produce furigana for the kana portions
     def testOkurigana(self):
-        actual = reading.mecab.reading("口走る")
-        self.assertEqual(actual, "口走[くちばし]る")
+        self.assertEqual(reading.mecab.reading("口走る"), "口走[くちばし]る")
+        self.assertEqual(reading.mecab.reading("テスト勉強の息抜きとか　どうしてんの"), "テスト勉強[べんきょう]の息抜[いきぬ]きとか　どうしてんの")
     
     # ensure that a single word that has plain kana appearing before the kanji in
     # the word do not have attached furigana

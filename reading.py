@@ -106,12 +106,18 @@ translator = Translator()
 def convertToHiragana(expr: str) -> str:
     return expr.translate(translator)
 
-# Determines if two strings have the same phonetic reading, regardless
-# of which script they're currently in (eg, 'は' == 'は' and 'ハ' == 'は')
-def areKanaEqual(a: str, b: str) -> bool:
-    hiraA = convertToHiragana(a)
-    hiraB = convertToHiragana(b)
-    return hiraA == hiraB
+def isKana(char: str) -> bool:
+    code = ord(char)
+
+    # Hiragana
+    if code >= UNICODE_HIRAGANA_START and code <= UNICODE_HIRAGANA_END:
+        return True
+
+    # Katakana
+    if code >= UNICODE_KATAKANA_START and code <= UNICODE_KATAKANA_END:
+        return True
+
+    return False
 
 # Mecab
 
@@ -138,6 +144,44 @@ class ReadingNode:
             return "<ruby>%s<rp>(</rp><rt>%s</rt><rp>)</rp></ruby>" % (self.text, self.reading)
         else:
             return '%s[%s]' % (self.text, self.reading)
+
+class RegexDefinition:
+    def __init__(self, text: str, regexGroupIndex: Optional[int]):
+        self.text = text
+        self.regexGroupIndex = regexGroupIndex
+
+def kanjiToRegex(kanji: str):
+    regexPieces: list[str] = []
+    definitions: list[RegexDefinition] = []
+    numCaptureGroups = 0
+    index = 0
+    while index < len(kanji):
+        # Hiragana and Katakana characters are inlined into the Regex
+        if isKana(kanji[index]):
+            # The reading variable is ALWAYS in hiragana only
+            regexPieces.append(convertToHiragana(kanji[index]))
+
+            # Use kanji[index] here to retain original katakana/hiragana
+            # (We convert to hiragana just to match against reading)
+            definitions.append(RegexDefinition(kanji[index], None))
+
+            # Advance to the next character
+            index += 1
+            continue
+
+        # We have a kanji character, which will become a lazy capture group
+        # in our Regex. First, absorb all sequential kanji characters into a
+        # single capture group
+        captureGroup = ""
+        while index < len(kanji) and not isKana(kanji[index]):
+            captureGroup += kanji[index]
+            index += 1
+
+        regexPieces.append("(.+?)")
+        definitions.append(RegexDefinition(captureGroup, numCaptureGroups))
+        numCaptureGroups += 1
+
+    return ("^%s$" % ''.join(regexPieces), definitions)
 
 class MecabController(object):
 
@@ -194,49 +238,18 @@ class MecabController(object):
                 nodes.append(ReadingNode(kanji, None))
                 continue
 
-            # iterate through the reading and the kanji, and only produce furigana
-            # for the characters that differ between the two (only give furigana to
-            # the kanji, not the kana)
-            # INVARIANT: reading is always at least as long as the kanji/word
-            indexKanji = 0
-            indexReading = 0
-            while indexReading < len(reading):
-                # If the reading and the kanji have the same value, the current
-                # character must be kana. Continue reading until we find the next
-                # difference
-                if areKanaEqual(kanji[indexKanji], reading[indexReading]):
-                    indexStart = indexKanji
-                    while indexReading < len(reading) and \
-                        indexKanji < len(kanji) and \
-                            areKanaEqual(kanji[indexKanji], reading[indexReading]):
-                        indexReading += 1
-                        indexKanji += 1
-                    nodes.append(ReadingNode(kanji[indexStart:indexKanji], None))
-                    continue
-
-                # The current characters are different, which must mean that we're
-                # at the start of a kanji. Make a node with furigana that contains
-                # all of the reading until we have a match up again between kanji string
-                # and reading
-                indexStartReading = indexReading
-                indexReading += 1 # Ensure we start our checks on the NEXT kana after triggering
-                while indexReading < len(reading):
-                    # Check to see if the current reading kana is found in the string.
-                    # This implements a lazy algorithm w.r.t. furigana length
-                    try:
-                        indexEnd = kanji.index(reading[indexReading], indexKanji)
-                        nodes.append(ReadingNode(kanji[indexKanji:indexEnd], reading[indexStartReading:indexReading]))
-                        indexKanji = indexEnd
-                        break
-                    except ValueError:
-                        pass
-                    
-                    indexReading += 1
-
-                if indexReading == len(reading):
-                    # We made it to the end of the reading, which should mean that the entire remaining
-                    # kanji has the entire remaining reading
-                    nodes.append(ReadingNode(kanji[indexKanji:], reading[indexStartReading:]))
+            # Convert the kanji variable into a Regex pattern where non-kana are
+            # turned into Regex capture groups, and then apply it to the reading
+            # to figure out (using lazy matching) what the smallest furigana readings
+            # are for the kanji
+            (regexPattern, regexDefinitions) = kanjiToRegex(kanji)
+            match = re.search(regexPattern, reading)
+            for definition in regexDefinitions:
+                if definition.regexGroupIndex is None:
+                    nodes.append(ReadingNode(definition.text, None))
+                else:
+                    groupReading = match.group(definition.regexGroupIndex + 1)
+                    nodes.append(ReadingNode(definition.text, groupReading))
 
         # Combine our nodes together into a single sentece
         fin = ''.join(node.format(useRubyTags) for node in nodes)
