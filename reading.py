@@ -21,7 +21,7 @@ import re
 import subprocess
 import platform
 
-from typing import Any, Mapping, Optional, Union
+from typing import Any, List, Mapping, Optional, Union
 
 mecabArgs = ['--node-format=%m[%f[7]] ', '--eos-format=\n',
              '--unk-format=%m[] ']
@@ -106,6 +106,13 @@ translator = Translator()
 def convertToHiragana(expr: str) -> str:
     return expr.translate(translator)
 
+def getAdditionalPossibleReadings(hiragana: str) -> Optional[List[str]]:
+    # The little ヵ and ヶ can show up in readings as "か" (eg: ヶ月, ヵ国, etc)
+    if hiragana == 'ゕ' or hiragana == 'ゖ':
+        return ['か']
+
+    return None
+
 def isKana(char: str) -> bool:
     code = ord(char)
 
@@ -159,11 +166,28 @@ def kanjiToRegex(kanji: str):
         # Hiragana and Katakana characters are inlined into the Regex
         if isKana(kanji[index]):
             # The reading variable is ALWAYS in hiragana only
-            regexPieces.append(convertToHiragana(kanji[index]))
+            hiragana = convertToHiragana(kanji[index])
 
-            # Use kanji[index] here to retain original katakana/hiragana
-            # (We convert to hiragana just to match against reading)
-            definitions.append(RegexDefinition(kanji[index], None))
+            additional = getAdditionalPossibleReadings(hiragana)
+            if additional:
+                # If it's possible that this kana could be read as a totally different kana
+                # (eg "ヶ" being read as "か"), we want to give it furigana.
+                # We'll register it as a capture group -- both because we don't know
+                # for SURE which reading we're expecting (so we'll register multiple
+                # possibilities), but ALSO so that we can go down the furigana generation
+                # pathway that's normally/usually reserved for kanji
+                regexPieces.append("(" + "|".join([hiragana] + additional) + ")")
+
+                # Use kanji[index] here to retain original katakana/hiragana
+                # (We convert to hiragana just to match against reading)
+                definitions.append(RegexDefinition(kanji[index], numCaptureGroups))
+                numCaptureGroups += 1
+            else:
+                regexPieces.append(hiragana)
+
+                # Use kanji[index] here to retain original katakana/hiragana
+                # (We convert to hiragana just to match against reading)
+                definitions.append(RegexDefinition(kanji[index], None))
 
             # Advance to the next character
             index += 1
