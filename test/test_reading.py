@@ -88,6 +88,28 @@ class TestMecab(unittest.TestCase):
         self.assertEqual(reading.mecab.reading("この文に 空白が あります"), "この文[ぶん]に 空白[くうはく]が あります")
         self.assertEqual(reading.mecab.reading("hello world"), "hello world")
 
+    # some kana characters will have different readings when used in readings
+    # (such as ヶ月 being read as かげつ). ensure that we can detect and handle these
+    def testKanaWithAdditionalReadings(self):
+        # Check that ヵ (small) stands in for か (large) in readings
+        # This should generate furigana for the small ヵ
+        self.assertEqual(reading.mecab.reading("彼はトルコを2ヵ月間訪問するつもりです"), "彼[かれ]はトルコを2ヵ[か]月[げつ]間[かん]訪問[ほうもん]するつもりです")
+
+        # Check that ヶ *also* stands in for か in readings
+        # This should generate furigana for the small ヶ
+        self.assertEqual(reading.mecab.reading("彼はトルコを2ヶ月間訪問するつもりです"), "彼[かれ]はトルコを2ヶ[か]月[げつ]間[かん]訪問[ほうもん]するつもりです")
+
+        # For the same sentence, also make sure that the full-sized か and カ
+        # are also recognized.
+        # However, neither of these should generate furigana.
+        self.assertEqual(reading.mecab.reading("彼はトルコを2か月間訪問するつもりです"), "彼[かれ]はトルコを2か月[げつ]間[かん]訪問[ほうもん]するつもりです")
+        self.assertEqual(reading.mecab.reading("彼はトルコを2カ月間訪問するつもりです"), "彼[かれ]はトルコを2カ月[げつ]間[かん]訪問[ほうもん]するつもりです")
+
+        # Finally, ensure that we're not just ALWAYS adding furigana to ヶ and ヵ
+        # whenever we encounter them
+        self.assertEqual(reading.mecab.reading("ィヵ"), "ィヵ")
+        self.assertEqual(reading.mecab.reading("ゥヶ"), "ゥヶ")
+
 class TestConvertToHiragana(unittest.TestCase):
     # ensure that if the function is called with an empty string, it will return
     # an empty string
