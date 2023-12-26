@@ -3,6 +3,6 @@
     "ignoreNumbers": true,
     "keyboardShortcut": {
         "add_furigana": "Alt+F",
-        "del_furigana": "ctrl+alt+F"
+        "del_furigana": "Ctrl+Alt+F"
     }
 }
