@@ -29,31 +29,61 @@ from .config import Config
 from .selection import Selection
 from .utils import removeFurigana
 
-mecab  = reading.MecabController()
+mecab = reading.MecabController()
 config = Config()
 
+
 def setupGuiMenu():
-    useRubyTags = QAction("Use ruby tags", mw, checkable=True, checked=config.getUseRubyTags())
+    useRubyTags = QAction(
+        "Use ruby tags", mw, checkable=True, checked=config.getUseRubyTags()
+    )
     useRubyTags.toggled.connect(config.setUseRubyTags)
 
-    ignoreNumbers = QAction("Ignore numbers", mw, checkable=True, checked=config.getIgnoreNumbers())
+    ignoreNumbers = QAction(
+        "Ignore numbers", mw, checkable=True, checked=config.getIgnoreNumbers()
+    )
     ignoreNumbers.toggled.connect(config.setIgnoreNumbers)
 
     mw.form.menuTools.addSeparator()
     mw.form.menuTools.addAction(useRubyTags)
     mw.form.menuTools.addAction(ignoreNumbers)
 
+
+def tooltip_with_shortcut(tip, shortcut_name):
+    shortcut = config.getKeyboardShortcut(shortcut_name)
+    if shortcut:
+        key_str = QKeySequence(shortcut).toString(
+            QKeySequence.SequenceFormat.NativeText
+        )
+        tip += " ({})".format(key_str)
+    return tip
+
+
 def addButtons(buttons, editor):
-    editor._links["generateFurigana"] = lambda ed=editor: doIt(ed, generateFurigana)
-    editor._links["deleteFurigana"] = lambda ed=editor: doIt(ed, deleteFurigana)
     return buttons + [
-        editor._addButton(os.path.join(os.path.dirname(__file__), "icons", "add_furigana.svg"), "generateFurigana", tip=u"Automatically generate furigana"),
-        editor._addButton(os.path.join(os.path.dirname(__file__), "icons", "del_furigana.svg"), "deleteFurigana", tip=u"Mass delete furigana")
+        editor.addButton(
+            icon=os.path.join(os.path.dirname(__file__), "icons", "add_furigana.svg"),
+            cmd="generateFurigana",
+            tip=tooltip_with_shortcut(
+                "Automatically generate furigana", "add_furigana"
+            ),
+            func=lambda ed=editor: doIt(ed, generateFurigana),
+            keys=config.getKeyboardShortcut("add_furigana"),
+        ),
+        editor.addButton(
+            icon=os.path.join(os.path.dirname(__file__), "icons", "del_furigana.svg"),
+            cmd="deleteFurigana",
+            tip=tooltip_with_shortcut("Delete all furigana", "del_furigana"),
+            func=lambda ed=editor: doIt(ed, deleteFurigana),
+            keys=config.getKeyboardShortcut("del_furigana"),
+        ),
     ]
+
 
 def doIt(editor, action):
     Selection(editor, lambda s: action(editor, s))
-    
+
+
 def generateFurigana(editor, s):
     html = s.selected
     html = removeFurigana(html)
@@ -63,12 +93,14 @@ def generateFurigana(editor, s):
     else:
         s.modify(html)
 
+
 def deleteFurigana(editor, s):
     stripped = removeFurigana(s.selected)
     if stripped == s.selected:
         tooltip("No furigana found to delete")
     else:
         s.modify(stripped)
+
 
 setupGuiMenu()
 addHook("setupEditorButtons", addButtons)

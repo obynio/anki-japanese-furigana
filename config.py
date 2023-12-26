@@ -18,12 +18,14 @@
 from aqt.addons import AbortAddonImport
 from aqt import mw
 
+
 def saveMe(func):
     def wrapper(self, *args):
         func(self, args)
         mw.addonManager.writeConfig(__name__, self.data)
 
     return wrapper
+
 
 class Config:
     def __init__(self):
@@ -33,17 +35,29 @@ class Config:
         self.data = mw.addonManager.getConfig(__name__)
 
     def getUseRubyTags(self):
-        return self.data['useRubyTags']
+        return self.data["useRubyTags"]
 
     @saveMe
     def setUseRubyTags(self, isEnabled):
-        self.data['useRubyTags'] = isEnabled[0]
-
-    def getIgnoreNumbers(self):
-        return self.data['ignoreNumbers']
+        self.data["useRubyTags"] = isEnabled[0]
 
     @saveMe
     def setIgnoreNumbers(self, isEnabled):
-        self.data['ignoreNumbers'] = isEnabled[0]
+        self.data["ignoreNumbers"] = isEnabled[0]
 
+    @saveMe
+    def setUseRubyTags(self, isEnabled):
+        self.data["useRubyTags"] = isEnabled[0]
 
+    @saveMe
+    def setKeyboardShortcut(self, name, key):
+        self.data["keyboardShortcut"][name] = key
+
+    def getIgnoreNumbers(self):
+        return self.data["ignoreNumbers"]
+
+    def getIgnoreNumbers(self):
+        return self.data["ignoreNumbers"]
+
+    def getKeyboardShortcut(self, name):
+        return self.data["keyboardShortcut"][name]
