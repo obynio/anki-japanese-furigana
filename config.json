@@ -2,7 +2,7 @@
     "useRubyTags": false,
     "ignoreNumbers": true,
     "keyboardShortcut": {
-        "add_furigana": "Ctrl+F",
+        "add_furigana": "Alt+F",
         "del_furigana": "Ctrl+Alt+F"
     }
 }

@@ -16,7 +16,7 @@ It is intended to work cross-platforms, either on `Windows`, `MacOS` or `Linux`.
 JapaneseFurigana adds two buttons in the card editor toolbar that detects kanjis and generates or removes their respective furigana readings.
 
 > [!TIP]
-> * Add furigana reading with **⌘F** or **Ctrl+F**
+> * Add furigana reading with **⌥F** or **Alt+F**
 > * Remove furigana reading with **⌥⌘F** or **Ctrl+Alt+F**
 
 ![screenshot](https://user-images.githubusercontent.com/2095991/81614721-bd883880-93e0-11ea-8200-aeea2da7c5d3.png)
