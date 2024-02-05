@@ -150,7 +150,7 @@ class ReadingNode:
         if useRubyTags:
             return "<ruby>%s<rp>(</rp><rt>%s</rt><rp>)</rp></ruby>" % (self.text, self.reading)
         else:
-            add_space = previous_character is not None and isKana(previous_character)
+            add_space = previous_character is not None and previous_character != "]"
             return '%s%s[%s]' % (" " if add_space else "", self.text, self.reading)
 
 class RegexDefinition:
