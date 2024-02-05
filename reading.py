@@ -143,14 +143,15 @@ class ReadingNode:
         self.text = text
         self.reading = reading
 
-    def format(self, useRubyTags: bool) -> str:
+    def format(self, useRubyTags: bool, previous_character: str) -> str:
         if self.reading is None:
             return self.text
 
         if useRubyTags:
             return "<ruby>%s<rp>(</rp><rt>%s</rt><rp>)</rp></ruby>" % (self.text, self.reading)
         else:
-            return '%s[%s]' % (self.text, self.reading)
+            add_space = previous_character is not None and isKana(previous_character)
+            return '%s%s[%s]' % (" " if add_space else "", self.text, self.reading)
 
 class RegexDefinition:
     def __init__(self, text: str, regexGroupIndex: Optional[int]):
@@ -276,7 +277,9 @@ class MecabController(object):
                     nodes.append(ReadingNode(definition.text, groupReading))
 
         # Combine our nodes together into a single sentece
-        fin = ''.join(node.format(useRubyTags) for node in nodes)
+        fin = ''
+        for node in nodes:
+            fin += node.format(useRubyTags, fin[-1] if len(fin) > 0 else None)
 
         # Finalize formatting
         fin = fin.replace(ASCII_SPACE_TOKEN, ' ')
