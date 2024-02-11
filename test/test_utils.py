@@ -27,8 +27,8 @@ class TestRemoveFurigana(unittest.TestCase):
 
     # ensure that bracket notation is correctly removed
     def testRemovesBrackets(self):
-        self.assertEqual(utils.removeFurigana("日本語[にほんご]を勉強[べんきょう]する"), "日本語を勉強する")
-        self.assertEqual(utils.removeFurigana("走[はし]り込[こ]む"), "走り込む")
+        self.assertEqual(utils.removeFurigana("日本語[にほんご]を 勉強[べんきょう]する"), "日本語を勉強する")
+        self.assertEqual(utils.removeFurigana("走[はし]り 込[こ]む"), "走り込む")
 
     # ensure that ruby tags are correctly removed
     def testRemovesRuby(self):
