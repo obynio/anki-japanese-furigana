@@ -35,6 +35,10 @@ def removeFurigana(text: str):
         stripped = stripped.replace("<ruby>" + ruby + "</ruby>", body)
 
     # Next, remove the bracket notation
+    # remove spaces only if bracket notation was used
+    if "[" in stripped:
+        stripped = stripped.replace(" ", "")
+
     stripped, _ = re.subn('\[[^\]]*\]', '', stripped)
 
     # Return the final string
