@@ -148,10 +148,10 @@ class ReadingNode:
             return self.text
 
         if useRubyTags:
-            return "<ruby>%s<rp>(</rp><rt>%s</rt><rp>)</rp></ruby>" % (self.text, self.reading)
+            return "<ruby>{}<rp>(</rp><rt>{}</rt><rp>)</rp></ruby>".format(self.text, self.reading)
         else:
             add_space = previous_character is not None and previous_character != "]"
-            return '%s%s[%s]' % (" " if add_space else "", self.text, self.reading)
+            return '{}{}[{}]'.format(" " if add_space else "", self.text, self.reading)
 
 class RegexDefinition:
     def __init__(self, text: str, regexGroupIndex: Optional[int]):
@@ -206,7 +206,7 @@ def kanjiToRegex(kanji: str):
         definitions.append(RegexDefinition(captureGroup, numCaptureGroups))
         numCaptureGroups += 1
 
-    return ("^%s$" % ''.join(regexPieces), definitions)
+    return ("^{}$".format(str().join(regexPieces)), definitions)
 
 class MecabController(object):
 
@@ -277,7 +277,7 @@ class MecabController(object):
                     nodes.append(ReadingNode(definition.text, groupReading))
 
         # Combine our nodes together into a single sentece
-        fin = ''
+        fin = str()
         for node in nodes:
             fin += node.format(useRubyTags, fin[-1] if len(fin) > 0 else None)
 
