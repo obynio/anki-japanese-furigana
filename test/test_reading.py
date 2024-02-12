@@ -24,7 +24,7 @@ class TestMecab(unittest.TestCase):
     # sentence should have readings
     def testNormalSentence(self):
         res = reading.mecab.reading("カリン、自分でまいた種は自分で刈り取れ")
-        self.assertEqual(res, "カリン、自分[じぶん]でまいた種[たね]は自分[じぶん]で刈[か]り取[と]れ")
+        self.assertEqual(res, "カリン、 自分[じぶん]でまいた 種[たね]は 自分[じぶん]で 刈[か]り 取[と]れ")
 
     # kanji should have a reading
     def testNormalKanji(self):
@@ -34,12 +34,12 @@ class TestMecab(unittest.TestCase):
     # punctuation should be ignored
     def testWithPunctuation(self):
         res = reading.mecab.reading("昨日、林檎を2個買った。")
-        self.assertEqual(res, "昨日[きのう]、林檎[りんご]を2個[こ]買[か]った。")
+        self.assertEqual(res, "昨日[きのう]、 林檎[りんご]を2 個[こ]買[か]った。")
 
     # unicode characters should be ignored
     def testUnicodeChar(self):
         res = reading.mecab.reading("真莉、大好きだよん＾＾")
-        self.assertEqual(res, "真[ま]莉、大好[だいす]きだよん＾＾")
+        self.assertEqual(res, "真[ま]莉、 大好[だいす]きだよん＾＾")
 
     # katakana should not be given furigana readings
     def testKatakana(self):
@@ -49,43 +49,43 @@ class TestMecab(unittest.TestCase):
     # romanji numbers should not have readings
     def testRomanjiNumbers(self):
         res = reading.mecab.reading("彼２０００万も使った。")
-        self.assertEqual(res, "彼[かれ]２０００万[まん]も使[つか]った。")
+        self.assertEqual(res, "彼[かれ]２０００ 万[まん]も 使[つか]った。")
 
     # kanji numbers should not have readings
     def testKanjiNumber(self):
         res = reading.mecab.reading("彼二千三百六十円も使った。")
-        self.assertEqual(res, "彼[かれ]二千[せん]三百[ひゃく]六十円[えん]も使[つか]った。")
+        self.assertEqual(res, "彼[かれ]二 千[せん]三 百[ひゃく]六十 円[えん]も 使[つか]った。")
 
     # ensure that verbs with okurigana don't produce furigana for the kana portions
     def testOkurigana(self):
         self.assertEqual(reading.mecab.reading("口走る"), "口走[くちばし]る")
-        self.assertEqual(reading.mecab.reading("テスト勉強の息抜きとか　どうしてんの"), "テスト勉強[べんきょう]の息抜[いきぬ]きとか　どうしてんの")
+        self.assertEqual(reading.mecab.reading("テスト勉強の息抜きとか　どうしてんの"), "テスト 勉強[べんきょう]の 息抜[いきぬ]きとか　どうしてんの")
     
     # ensure that a single word that has plain kana appearing before the kanji in
     # the word do not have attached furigana
     def testKanaPrefixes(self):
-        self.assertEqual(reading.mecab.reading("お前"), "お前[まえ]")
-        self.assertEqual(reading.mecab.reading("ローマ字"), "ローマ字[じ]")
-        self.assertEqual(reading.mecab.reading("ローマ帝国"), "ローマ帝国[ていこく]")
+        self.assertEqual(reading.mecab.reading("お前"), "お 前[まえ]")
+        self.assertEqual(reading.mecab.reading("ローマ字"), "ローマ 字[じ]")
+        self.assertEqual(reading.mecab.reading("ローマ帝国"), "ローマ 帝国[ていこく]")
 
     # ensure that a single word that both begins AND ends with kana but contains
     # kanji in the middle only generates furigana for the kanji portion, and not
     # for the kana
     def testKanaPrefixSuffix(self):
         actual = reading.mecab.reading("みじん切り")
-        self.assertEqual(actual, "みじん切[ぎ]り")
+        self.assertEqual(actual, "みじん 切[ぎ]り")
 
     # ensure that for words that have kana in between two kanji, that only the
     # kanji receive furigana readings and the kana does not
     def testKanaBetweenKanji(self):
-        self.assertEqual(reading.mecab.reading("書き込む"), "書[か]き込[こ]む")
-        self.assertEqual(reading.mecab.reading("走り抜く"), "走[はし]り抜[ぬ]く")
-        self.assertEqual(reading.mecab.reading("走り回る"), "走[はし]り回[まわ]る")
+        self.assertEqual(reading.mecab.reading("書き込む"), "書[か]き 込[こ]む")
+        self.assertEqual(reading.mecab.reading("走り抜く"), "走[はし]り 抜[ぬ]く")
+        self.assertEqual(reading.mecab.reading("走り回る"), "走[はし]り 回[まわ]る")
 
     # ensure that any regular ASCII space characters (0x20) that are in the original
     # string are found in the resultant string as well
     def testSpacesRetained(self):
-        self.assertEqual(reading.mecab.reading("この文に 空白が あります"), "この文[ぶん]に 空白[くうはく]が あります")
+        self.assertEqual(reading.mecab.reading("この文に 空白が あります"), "この 文[ぶん]に  空白[くうはく]が あります")
         self.assertEqual(reading.mecab.reading("hello world"), "hello world")
 
     # some kana characters will have different readings when used in readings
@@ -93,17 +93,17 @@ class TestMecab(unittest.TestCase):
     def testKanaWithAdditionalReadings(self):
         # Check that ヵ (small) stands in for か (large) in readings
         # This should generate furigana for the small ヵ
-        self.assertEqual(reading.mecab.reading("彼はトルコを2ヵ月間訪問するつもりです"), "彼[かれ]はトルコを2ヵ[か]月[げつ]間[かん]訪問[ほうもん]するつもりです")
+        self.assertEqual(reading.mecab.reading("彼はトルコを2ヵ月間訪問するつもりです"), "彼[かれ]はトルコを2 ヵ[か]月[げつ]間[かん]訪問[ほうもん]するつもりです")
 
         # Check that ヶ *also* stands in for か in readings
         # This should generate furigana for the small ヶ
-        self.assertEqual(reading.mecab.reading("彼はトルコを2ヶ月間訪問するつもりです"), "彼[かれ]はトルコを2ヶ[か]月[げつ]間[かん]訪問[ほうもん]するつもりです")
+        self.assertEqual(reading.mecab.reading("彼はトルコを2ヶ月間訪問するつもりです"), "彼[かれ]はトルコを2 ヶ[か]月[げつ]間[かん]訪問[ほうもん]するつもりです")
 
         # For the same sentence, also make sure that the full-sized か and カ
         # are also recognized.
         # However, neither of these should generate furigana.
-        self.assertEqual(reading.mecab.reading("彼はトルコを2か月間訪問するつもりです"), "彼[かれ]はトルコを2か月[げつ]間[かん]訪問[ほうもん]するつもりです")
-        self.assertEqual(reading.mecab.reading("彼はトルコを2カ月間訪問するつもりです"), "彼[かれ]はトルコを2カ月[げつ]間[かん]訪問[ほうもん]するつもりです")
+        self.assertEqual(reading.mecab.reading("彼はトルコを2か月間訪問するつもりです"), "彼[かれ]はトルコを2か 月[げつ]間[かん]訪問[ほうもん]するつもりです")
+        self.assertEqual(reading.mecab.reading("彼はトルコを2カ月間訪問するつもりです"), "彼[かれ]はトルコを2カ 月[げつ]間[かん]訪問[ほうもん]するつもりです")
 
         # Finally, ensure that we're not just ALWAYS adding furigana to ヶ and ヵ
         # whenever we encounter them
