@@ -18,7 +18,7 @@
 import os
 
 from aqt.utils import tooltip
-from aqt.operations import QueryOp
+from aqt.operations import CollectionOp
 from aqt.qt import *
 
 from aqt import mw
@@ -138,11 +138,19 @@ def bulkUpdate(browser, nids):
         sourceField = sourceField.currentText()
         destinationField = destinationField.currentText()
 
-        QueryOp(
+        def progressCallback(i, total):
+            mw.taskman.run_on_main(
+                lambda: mw.progress.update(
+                    label=f"{i}/{total}",
+                    value=i,
+                    max=total,
+                )
+            )
+
+        CollectionOp(
             parent=mw,
-            op=lambda col: bulkGenerate(col, nids, sourceField, destinationField),
-            success=lambda result: tooltip('Furigana generated successfully')
-        ).with_progress().run_in_background()
+            op=lambda col: bulkGenerate(col, nids, sourceField, destinationField, progressCallback),
+        ).run_in_background()
 
 def doIt(editor, action):
     Selection(editor, lambda s: action(editor, s))

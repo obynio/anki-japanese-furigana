@@ -15,21 +15,31 @@
 # You should have received a copy of the GNU General Public License
 # along with Japanese Furigana.  If not, see <http://www.gnu.org/licenses/>.
 
+import time
+
 from . import reading
 from .config import Config
 from .utils import removeFurigana
+from aqt import *
 
 mecab = reading.MecabController()
 config = Config()
 
-def bulkGenerate(collection, noteIds, sourceField, destinationField):
+def bulkGenerate(collection, noteIds, sourceField, destinationField, progress):
     undo_entry = collection.add_custom_undo_entry('Batch Generate Furigana')
+    last_progress = 0
+    i = 0
 
     for noteId in noteIds:
         note = collection.get_note(noteId)
         note[destinationField] = generateFurigana(note[sourceField])
         collection.update_note(note)
         collection.merge_undo_entries(undo_entry)
+        i += 1
+
+        if time.time() - last_progress >= 0.1:
+            progress(i, len(noteIds))
+            last_progress = time.time()
 
 def generateFurigana(html):
     html = removeFurigana(html)
