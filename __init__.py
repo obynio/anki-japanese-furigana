@@ -96,6 +96,10 @@ def onBulkUpdate(browser):
     bulkUpdate(browser, nids)
 
 def bulkUpdate(browser, nids):
+    config = mw.addonManager.getConfig(__name__)
+    lastSourceField = config.get('lastSourceField', None)
+    lastDestinationField = config.get('lastDestinationField', None)
+
     # Extract fields from the first note
     note = mw.col.get_note(nids[0])
     fields = note.keys()
@@ -125,6 +129,12 @@ def bulkUpdate(browser, nids):
         sourceField.addItem(field)
         destinationField.addItem(field)
 
+        if field == lastSourceField:
+            sourceField.setCurrentText(field)
+
+        if field == lastDestinationField:
+            destinationField.setCurrentText(field)
+
     buttonsLayout = QHBoxLayout()
     layout.addLayout(buttonsLayout)
     generateButton = QPushButton('Generate', parent=dialog)
@@ -138,6 +148,13 @@ def bulkUpdate(browser, nids):
         sourceField = sourceField.currentText()
         destinationField = destinationField.currentText()
 
+        # Save the values to be remembered later
+        configs = {
+            'lastSourceField': sourceField,
+            'lastDestinationField': destinationField,
+        }
+        mw.addonManager.writeConfig(__name__, configs)
+
         def progressCallback(i, total):
             mw.taskman.run_on_main(
                 lambda: mw.progress.update(
@@ -150,7 +167,7 @@ def bulkUpdate(browser, nids):
         QueryOp(
             parent=mw,
             op=lambda col: bulkGenerate(col, nids, sourceField, destinationField, progressCallback),
-            success=lambda col: tooltip('Furigana generated successfully')
+            success=lambda col: tooltip('Furigana generated successfully'),
         ).with_progress().run_in_background()
 
 def doIt(editor, action):
