@@ -18,6 +18,7 @@
 import os
 
 from aqt.utils import tooltip
+from aqt.operations import QueryOp
 from aqt.qt import *
 
 from aqt import mw
@@ -28,6 +29,7 @@ from . import reading
 from .config import Config
 from .selection import Selection
 from .utils import removeFurigana
+from .bulk import bulkGenerate
 
 mecab = reading.MecabController()
 config = Config()
@@ -79,6 +81,94 @@ def addButtons(buttons, editor):
         ),
     ]
 
+def addBrowserButtons(browser):
+    menu = browser.form.menuEdit
+    menu.addSeparator()
+    a = menu.addAction('Bulk Generate Furigana')
+    a.triggered.connect(lambda _, b=browser: onBulkUpdate(b))
+
+def onBulkUpdate(browser):
+    nids = browser.selectedNotes()
+    if not nids:
+        tooltip("No notes selected.")
+        return
+
+    bulkUpdate(browser, nids)
+
+def bulkUpdate(browser, nids):
+    config = mw.addonManager.getConfig(__name__)
+    lastSourceField = config.get('lastSourceField', None)
+    lastDestinationField = config.get('lastDestinationField', None)
+
+    # Extract fields from the first note
+    note = mw.col.get_note(nids[0])
+    fields = note.keys()
+
+    # Set up dialog
+    dialog = QDialog(browser)
+    dialog.setWindowTitle('Bulk Generate Furigana for ' + str(len(nids)) + ' note(s)')
+
+    layout = QVBoxLayout(dialog)
+
+    sourceFieldLayout = QHBoxLayout()
+    layout.addLayout(sourceFieldLayout)
+    sourceFieldLabel = QLabel('Source Field')
+    sourceFieldLayout.addWidget(sourceFieldLabel)
+    sourceField = QComboBox()
+    sourceFieldLayout.addWidget(sourceField)
+
+    destinationFieldLayout = QHBoxLayout()
+    layout.addLayout(destinationFieldLayout)
+    destinationFieldLabel = QLabel('Destination Field')
+    destinationFieldLayout.addWidget(destinationFieldLabel)
+    destinationField = QComboBox()
+
+    destinationFieldLayout.addWidget(destinationField)
+
+    for field in fields:
+        sourceField.addItem(field)
+        destinationField.addItem(field)
+
+        if field == lastSourceField:
+            sourceField.setCurrentText(field)
+
+        if field == lastDestinationField:
+            destinationField.setCurrentText(field)
+
+    buttonsLayout = QHBoxLayout()
+    layout.addLayout(buttonsLayout)
+    generateButton = QPushButton('Generate', parent=dialog)
+    buttonsLayout.addWidget(generateButton)
+
+    generateButton.clicked.connect(dialog.accept)
+    dialog.resize(320, 150)
+
+    if dialog.exec():
+        # Get the values *before* QueryOp otherwise the QT objects will be disposed of
+        sourceField = sourceField.currentText()
+        destinationField = destinationField.currentText()
+
+        # Save the values to be remembered later
+        configs = {
+            'lastSourceField': sourceField,
+            'lastDestinationField': destinationField,
+        }
+        mw.addonManager.writeConfig(__name__, configs)
+
+        def progressCallback(i, total):
+            mw.taskman.run_on_main(
+                lambda: mw.progress.update(
+                    label=f"{i}/{total}",
+                    value=i,
+                    max=total,
+                )
+            )
+
+        QueryOp(
+            parent=mw,
+            op=lambda col: bulkGenerate(col, nids, sourceField, destinationField, progressCallback),
+            success=lambda col: tooltip('Furigana generated successfully'),
+        ).with_progress().run_in_background()
 
 def doIt(editor, action):
     Selection(editor, lambda s: action(editor, s))
@@ -104,3 +194,4 @@ def deleteFurigana(editor, s):
 
 setupGuiMenu()
 addHook("setupEditorButtons", addButtons)
+addHook("browser.setupMenus", addBrowserButtons)
