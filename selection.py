@@ -25,7 +25,7 @@ from aqt.editor import Editor
 
 from anki.buildinfo import version
 
-ANKI_SEMVER_AS_INT = int(version.replace('.', ''))
+ANKI_SEMVER_AS_INT = int(''.join(c for c in version if c.isdigit()))
 
 class Selection:
 
@@ -80,6 +80,6 @@ class Selection:
 
             if self.window.note is None:
                 return
-            
+
             self.window.note.fields[self.window.currentField] = html
             self.window.loadNoteKeepingFocus()
