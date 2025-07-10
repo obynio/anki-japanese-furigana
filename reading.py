@@ -109,7 +109,8 @@ def convertToHiragana(expr: str) -> str:
 def getAdditionalPossibleReadings(hiragana: str) -> Optional[List[str]]:
     # The little ヵ and ヶ can show up in readings as "か" (eg: ヶ月, ヵ国, etc)
     if hiragana == 'ゕ' or hiragana == 'ゖ':
-        return ['か']
+        additionalPossibleReadings = ['か', 'が']
+        return additionalPossibleReadings
 
     return None
 
