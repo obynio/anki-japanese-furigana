@@ -35,6 +35,12 @@ I will try my best to offer a backward compatibility with older versions of Anki
 
 I try to include unit tests as much as possible, you can run them with `python -m unittest`.
 
+Once installed on your system, the extension is located in
+
+* `~/Library/Application Support/Anki2/addons21/` on MacOS
+* `~/.local/share/Anki2/addons21/` on Linux
+* `%APPDATA%\Anki2\addons21\` on Windows
+
 ## Why
 
 There is already plently of plugins available for Japanese, but most of them are incompatible with the lastest versions of Anki or do not work on MacOS.
