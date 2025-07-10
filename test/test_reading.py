@@ -60,7 +60,7 @@ class TestMecab(unittest.TestCase):
     def testOkurigana(self):
         self.assertEqual(reading.mecab.reading("口走る"), "口走[くちばし]る")
         self.assertEqual(reading.mecab.reading("テスト勉強の息抜きとか　どうしてんの"), "テスト 勉強[べんきょう]の 息抜[いきぬ]きとか　どうしてんの")
-    
+
     # ensure that a single word that has plain kana appearing before the kanji in
     # the word do not have attached furigana
     def testKanaPrefixes(self):
@@ -98,6 +98,12 @@ class TestMecab(unittest.TestCase):
         # Check that ヶ *also* stands in for か in readings
         # This should generate furigana for the small ヶ
         self.assertEqual(reading.mecab.reading("彼はトルコを2ヶ月間訪問するつもりです"), "彼[かれ]はトルコを2 ヶ[か]月[げつ]間[かん]訪問[ほうもん]するつもりです")
+
+        # The little ヵ and ヶ can show up in readings as か but read が
+        # Fixed by #45 to avoid crashing everything
+        self.assertEqual(reading.mecab.reading("千駄ヶ谷"), "千駄[せんだ]ヶ[が]谷[や]")
+        self.assertEqual(reading.mecab.reading("霞ヶ浦"), "霞[かすみ]ヶ[が]浦[うら]")
+        self.assertEqual(reading.mecab.reading("１ヶ月"), "１ ヶ[か]月[げつ]")
 
         # For the same sentence, also make sure that the full-sized か and カ
         # are also recognized.
