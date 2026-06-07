@@ -18,7 +18,7 @@
 import os
 
 from aqt.utils import tooltip
-from aqt.operations import QueryOp
+from aqt.operations import CollectionOp
 from aqt.qt import *
 
 from aqt import mw
@@ -144,7 +144,7 @@ def bulkUpdate(browser, nids):
     dialog.resize(320, 150)
 
     if dialog.exec():
-        # Get the values *before* QueryOp otherwise the QT objects will be disposed of
+        # Get the values *before* CollectionOp otherwise the QT objects will be disposed of
         sourceField = sourceField.currentText()
         destinationField = destinationField.currentText()
 
@@ -164,11 +164,10 @@ def bulkUpdate(browser, nids):
                 )
             )
 
-        QueryOp(
+        CollectionOp(
             parent=mw,
             op=lambda col: bulkGenerate(col, nids, sourceField, destinationField, progressCallback),
-            success=lambda col: tooltip('Furigana generated successfully'),
-        ).with_progress().run_in_background()
+        ).success(lambda _: tooltip('Furigana generated successfully')).run_in_background()
 
 def doIt(editor, action):
     Selection(editor, lambda s: action(editor, s))
