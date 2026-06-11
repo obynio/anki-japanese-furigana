@@ -29,17 +29,20 @@ def bulkGenerate(collection, noteIds, sourceField, destinationField, progress):
     undo_entry = collection.add_custom_undo_entry('Batch Generate Furigana')
     last_progress = 0
     i = 0
+    changes = None
 
     for noteId in noteIds:
         note = collection.get_note(noteId)
         note[destinationField] = generateFurigana(note[sourceField])
         collection.update_note(note)
-        collection.merge_undo_entries(undo_entry)
+        changes = collection.merge_undo_entries(undo_entry)
         i += 1
 
         if time.time() - last_progress >= 0.1:
             progress(i, len(noteIds))
             last_progress = time.time()
+
+    return changes
 
 def generateFurigana(html):
     html = removeFurigana(html)
