@@ -39,7 +39,7 @@ def removeFurigana(text: str):
     if "[" in stripped:
         stripped = stripped.replace(" ", "")
 
-    stripped, _ = re.subn('\[[^\]]*\]', '', stripped)
+    stripped, _ = re.subn(r'\[[^\]]*\]', '', stripped)
 
     # Return the final string
     return stripped
