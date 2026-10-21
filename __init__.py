@@ -30,6 +30,7 @@ from .config import Config
 from .selection import Selection
 from .utils import removeFurigana
 from .bulk import bulkGenerate
+from . import reviewer
 
 mecab = reading.MecabController()
 config = Config()
@@ -194,3 +195,4 @@ def deleteFurigana(editor, s):
 setupGuiMenu()
 addHook("setupEditorButtons", addButtons)
 addHook("browser.setupMenus", addBrowserButtons)
+reviewer.setupReviewer(mecab, config)
